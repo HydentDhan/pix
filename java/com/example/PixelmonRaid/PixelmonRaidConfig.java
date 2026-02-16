@@ -1,14 +1,21 @@
 package com.example.PixelmonRaid;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 public class PixelmonRaidConfig {
     private static PixelmonRaidConfig instance;
     private static final File configFile = new File("config/pixelmonraid.json");
+    private static final File backupFile = new File("config/pixelmonraid_backup.json");
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+    public static final int CURRENT_CONFIG_VERSION = 5;
+    private int configVersion = CURRENT_CONFIG_VERSION;
 
     private String msgRaidStart = "&d&l☠ THE RAID BOSS HAS SPAWNED! &fUse &e/raid join &fto fight!";
     private String msgRaidWin = "&6&l🏆 RAID VICTORY! &eThe boss has been defeated!";
@@ -20,15 +27,12 @@ public class PixelmonRaidConfig {
     private String msgWarn60 = "&e&l⚠ RAID STARTING IN 1 MINUTE! &fPrepare your team!";
     private String msgWarn30 = "&6&l⚠ RAID STARTING IN 30 SECONDS! &fType &e/raid join &fnow!";
 
-
     private String discordWebhookUrl = "";
-
     private List<String> bossListLevel1 = new ArrayList<>(Arrays.asList("Bulbasaur", "Charmander", "Squirtle"));
     private List<String> bossListLevel2 = new ArrayList<>(Arrays.asList("Ivysaur", "Charmeleon", "Wartortle"));
     private List<String> bossListLevel3 = new ArrayList<>(Arrays.asList("Venusaur", "Charizard", "Blastoise"));
     private List<String> bossListLevel4 = new ArrayList<>(Arrays.asList("Dragonite", "Tyranitar", "Metagross"));
     private List<String> bossListLevel5 = new ArrayList<>(Arrays.asList("Mewtwo", "Rayquaza", "Eternatus"));
-
 
     private List<String> bossSpeciesList = new ArrayList<>(Arrays.asList("Charizard", "Blastoise", "Venusaur"));
     private List<String> bossSpeciesListTier5 = new ArrayList<>(Arrays.asList("Rayquaza", "Mewtwo"));
@@ -37,12 +41,18 @@ public class PixelmonRaidConfig {
     private boolean silentMode = false;
     private double bossScaleFactor = 10.0;
 
+    private boolean autoRaidEnabled = false;
+    private int bossHpLevel1 = 20000;
+    private int bossHpLevel2 = 45000;
+    private int bossHpLevel3 = 70000;
+    private int bossHpLevel4 = 95000;
+    private int bossHpLevel5 = 120000;
+    private double extraHpMultiplierPerWinAtMaxLevel = 0.10;
+
     private boolean bossBarSpacer = true;
 
     private boolean soundsEnabled = true;
     private float soundVolume = 1.0f;
-
-
     private boolean hologramEnabled = true;
     private double holoX = 0.0;
     private double holoY = 100.0;
@@ -56,7 +66,6 @@ public class PixelmonRaidConfig {
     private int raidDurationSeconds = 300;
     private int rejoinCooldownSeconds = 10;
     private int hpBroadcastIntervalSeconds = 60;
-
     private String uiServerName = "&d&lMY SERVER RAIDS";
     private String uiThemeColor = "&5";
     private String uiLogoItem = "minecraft:nether_star";
@@ -68,7 +77,6 @@ public class PixelmonRaidConfig {
     private int raidDurationLevel3 = 420;
     private int raidDurationLevel4 = 480;
     private int raidDurationLevel5 = 600;
-
     private double damageCapPercentage = 0.10;
 
     private int tokensDropLevel1 = 1;
@@ -77,11 +85,8 @@ public class PixelmonRaidConfig {
     private int tokensDropLevel4 = 5;
     private int tokensDropLevel5 = 10;
     private List<String> raidShopItems = new ArrayList<>(Arrays.asList("pixelmon:rare_candy 1 1", "pixelmon:master_ball 50 1", "pixelmon:park_ball 20 1"));
-
-
     private Map<String, List<String>> rankRewards = new LinkedHashMap<>();
     private Map<String, Integer> rankMoney = new LinkedHashMap<>();
-
 
     private List<String> rewardsRank1;
     private List<String> rewardsRank2;
@@ -131,10 +136,24 @@ public class PixelmonRaidConfig {
 
         try (Reader reader = new FileReader(configFile)) {
             PixelmonRaidConfig data = gson.fromJson(reader, PixelmonRaidConfig.class);
-
             if (data == null) {
                 System.err.println("[PixelmonRaid] Config file was empty or invalid. Keeping defaults.");
                 return;
+            }
+
+            boolean needsUpdate = false;
+            if (data.configVersion < CURRENT_CONFIG_VERSION) {
+                System.out.println("[PixelmonRaid] Older config version detected (" + data.configVersion + "). Upgrading to version " + CURRENT_CONFIG_VERSION + "...");
+                try {
+                    Files.copy(configFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    System.out.println("[PixelmonRaid] Created backup of old config at pixelmonraid_backup.json");
+                } catch (IOException e) {
+                    System.err.println("[PixelmonRaid] Failed to create config backup!");
+                }
+                this.configVersion = CURRENT_CONFIG_VERSION;
+                needsUpdate = true;
+            } else {
+                this.configVersion = data.configVersion;
             }
 
             if (data.msgRaidStart != null) this.msgRaidStart = data.msgRaidStart;
@@ -160,6 +179,15 @@ public class PixelmonRaidConfig {
             this.raidDifficulty = data.raidDifficulty;
             this.silentMode = data.silentMode;
             if (data.bossScaleFactor > 0) this.bossScaleFactor = data.bossScaleFactor;
+
+            this.autoRaidEnabled = data.autoRaidEnabled;
+            if (data.bossHpLevel1 > 0) this.bossHpLevel1 = data.bossHpLevel1;
+            if (data.bossHpLevel2 > 0) this.bossHpLevel2 = data.bossHpLevel2;
+            if (data.bossHpLevel3 > 0) this.bossHpLevel3 = data.bossHpLevel3;
+            if (data.bossHpLevel4 > 0) this.bossHpLevel4 = data.bossHpLevel4;
+            if (data.bossHpLevel5 > 0) this.bossHpLevel5 = data.bossHpLevel5;
+            if (data.extraHpMultiplierPerWinAtMaxLevel >= 0) this.extraHpMultiplierPerWinAtMaxLevel = data.extraHpMultiplierPerWinAtMaxLevel;
+
             this.soundsEnabled = data.soundsEnabled;
             if (data.soundVolume > 0) this.soundVolume = data.soundVolume;
             this.bossBarSpacer = data.bossBarSpacer;
@@ -178,7 +206,6 @@ public class PixelmonRaidConfig {
 
             this.dynamicDifficulty = data.dynamicDifficulty;
             if (data.difficultyScalePerPlayer > 0) this.difficultyScalePerPlayer = data.difficultyScalePerPlayer;
-
             if (data.uiServerName != null) this.uiServerName = data.uiServerName;
             if (data.uiThemeColor != null) this.uiThemeColor = data.uiThemeColor;
             if (data.uiLogoItem != null) this.uiLogoItem = data.uiLogoItem;
@@ -197,7 +224,6 @@ public class PixelmonRaidConfig {
             this.tokensDropLevel4 = data.tokensDropLevel4;
             this.tokensDropLevel5 = data.tokensDropLevel5;
             if(data.tokenDropChance > 0) this.tokenDropChance = data.tokenDropChance;
-
             if (data.rankRewards != null && !data.rankRewards.isEmpty()) {
                 this.rankRewards = new LinkedHashMap<>(data.rankRewards);
             } else {
@@ -228,8 +254,18 @@ public class PixelmonRaidConfig {
             this.moneyKillshot = data.moneyKillshot;
 
             if(this.rankRewards.isEmpty()) addDefaults();
+
+            if (needsUpdate) {
+                save();
+                System.out.println("[PixelmonRaid] Config successfully updated to version " + CURRENT_CONFIG_VERSION);
+            }
         } catch (JsonSyntaxException e) {
-            System.err.println("[PixelmonRaid] ERROR: Config file has invalid JSON syntax! Changes were NOT loaded to protect your file.");
+            System.err.println("[PixelmonRaid] ERROR: Config file has invalid JSON syntax! Backing up and resetting to prevent crashes.");
+            try {
+                Files.copy(configFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                addDefaults();
+                save();
+            } catch (IOException ex) { ex.printStackTrace(); }
             e.printStackTrace();
         } catch (Exception e) {
             System.err.println("[PixelmonRaid] ERROR: Failed to load config file.");
@@ -260,6 +296,9 @@ public class PixelmonRaidConfig {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
+    public boolean isAutoRaidEnabled() { return autoRaidEnabled; }
+    public void setAutoRaidEnabled(boolean v) { this.autoRaidEnabled = v; save(); }
+
     public boolean isBossBarSpacerEnabled() { return bossBarSpacer; }
     public boolean isHologramEnabled() { return hologramEnabled; }
     public void setHologramEnabled(boolean v) { this.hologramEnabled = v; save(); }
@@ -270,7 +309,8 @@ public class PixelmonRaidConfig {
     public String getHoloWorld() { return holoWorld; }
 
     public void setHoloLocation(double x, double y, double z, String world) {
-        this.holoX = x; this.holoY = y; this.holoZ = z; this.holoWorld = world;
+        this.holoX = x;
+        this.holoY = y; this.holoZ = z; this.holoWorld = world;
         save();
     }
 
@@ -317,7 +357,6 @@ public class PixelmonRaidConfig {
 
     public void setRaidDurationSeconds(int seconds) { this.raidDurationSeconds = seconds; save(); }
     public int getRaidDurationSeconds() { return this.raidDurationSeconds > 0 ? this.raidDurationSeconds : 300; }
-
 
     public int getRaidDurationForDifficulty(int difficulty) {
         switch(difficulty) {
@@ -368,7 +407,24 @@ public class PixelmonRaidConfig {
     }
 
     public int getRaidDifficulty() { return raidDifficulty; }
-    public int getBossHP() { return 20000 + ((raidDifficulty - 1) * 25000); }
+
+    public int getBossHP(int difficulty, int winStreak) {
+        int hp;
+        switch(difficulty) {
+            case 1: hp = bossHpLevel1 > 0 ? bossHpLevel1 : 20000; break;
+            case 2: hp = bossHpLevel2 > 0 ? bossHpLevel2 : 45000; break;
+            case 3: hp = bossHpLevel3 > 0 ? bossHpLevel3 : 70000; break;
+            case 4: hp = bossHpLevel4 > 0 ? bossHpLevel4 : 95000; break;
+            case 5: hp = bossHpLevel5 > 0 ? bossHpLevel5 : 120000; break;
+            default: hp = 20000; break;
+        }
+
+        if (difficulty >= 5 && winStreak > 0 && extraHpMultiplierPerWinAtMaxLevel > 0) {
+            hp += (int)(hp * (winStreak * extraHpMultiplierPerWinAtMaxLevel));
+        }
+        return hp;
+    }
+
     public boolean isSilentMode() { return silentMode; }
     public double getBossScaleFactor() { return bossScaleFactor; }
 
