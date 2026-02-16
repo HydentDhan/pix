@@ -51,12 +51,9 @@ public class RaidSession {
 
     private long battleStartTick;
     private long suddenDeathStartTick;
-    private long raidIntervalTicks;
     private boolean isSpawning = false;
-    private boolean autoRaidEnabled = true;
 
     private final Set<UUID> players = ConcurrentHashMap.newKeySet();
-
     private UUID templateUUID = null;
     private final Set<UUID> activeCopyUUIDs = ConcurrentHashMap.newKeySet();
     private final DamageTracker damageTracker = new DamageTracker();
@@ -91,8 +88,11 @@ public class RaidSession {
     public RaidSession(ServerWorld world, BlockPos ignored) {
         this.world = world;
         this.raidId = UUID.randomUUID();
-        this.raidIntervalTicks = 20L * PixelmonRaidConfig.getInstance().getRaidIntervalSeconds();
-        this.totalRaidHP = PixelmonRaidConfig.getInstance().getBossHP();
+
+        int wins = 0;
+        if (world != null) wins = RaidSaveData.get(world).getWinStreak();
+        int configHP = PixelmonRaidConfig.getInstance().getBossHP(PixelmonRaidConfig.getInstance().getRaidDifficulty(), wins);
+        this.totalRaidHP = configHP;
         this.maxRaidHP = this.totalRaidHP;
     }
 
@@ -101,8 +101,8 @@ public class RaidSession {
     public DamageTracker getDamageTracker() { return damageTracker; }
     public int getMaxRaidHP() { return maxRaidHP; }
     public int getTotalRaidHP() { return totalRaidHP; }
-    public boolean isAutoRaidEnabled() { return autoRaidEnabled; }
-    public void setAutoRaidEnabled(boolean enabled) { this.autoRaidEnabled = enabled; }
+
+    public boolean isAutoRaidEnabled() { return PixelmonRaidConfig.getInstance().isAutoRaidEnabled(); }
 
     public void setTotalRaidHP(int hp) {
         this.totalRaidHP = Math.max(0, hp);
@@ -279,7 +279,6 @@ public class RaidSession {
                 spawnZ = center.getZ();
             }
             if (spawnY < 0) spawnY = 5.0;
-
             if (!world.isLoaded(new BlockPos(spawnX, spawnY, spawnZ))) {
                 player.sendMessage(new StringTextComponent("§c[Raid] Area not loaded! Please get closer to the center."), player.getUUID());
                 pendingBattles.remove(player.getUUID());
@@ -500,17 +499,14 @@ public class RaidSession {
 
         long sLeft = Math.max(0, ticksRemaining / 20L);
         String timeStr = String.format("%02d:%02d", sLeft / 60, sLeft % 60);
-
         String hpInfo = " §7| §c" + totalRaidHP + "§7/§c" + maxRaidHP + " HP";
         String timeInfo = " §7| §e⏳ " + timeStr;
 
         String title = isSuddenDeath
                 ? "§4§l☠ SUDDEN DEATH: " + currentBossName + " ☠" + hpInfo + timeInfo
                 : "§d§lGlobal Boss: " + currentBossName + hpInfo + timeInfo;
-
         float pct = (float)totalRaidHP / (float)Math.max(1, maxRaidHP);
         bar.setValue((int)(pct * 100));
-
         if (isSuddenDeath) {
             bar.setColor(BossInfo.Color.PURPLE);
             bar.setOverlay(BossInfo.Overlay.NOTCHED_12);
@@ -561,7 +557,9 @@ public class RaidSession {
         isSpawning = true;
         spawnFailureCount = 0;
 
-        int configHP = PixelmonRaidConfig.getInstance().getBossHP();
+        int diff = PixelmonRaidConfig.getInstance().getRaidDifficulty();
+        int wins = RaidSaveData.get(world).getWinStreak();
+        int configHP = PixelmonRaidConfig.getInstance().getBossHP(diff, wins);
         this.totalRaidHP = configHP;
         this.maxRaidHP = configHP;
 
@@ -578,11 +576,9 @@ public class RaidSession {
 
         if (spawned) {
             this.battleStartTick = world.getGameTime();
-            int diff = PixelmonRaidConfig.getInstance().getRaidDifficulty();
             long durationTicks = 20L * PixelmonRaidConfig.getInstance().getRaidDurationForDifficulty(diff);
             long cooldownTicks = 20L * PixelmonRaidConfig.getInstance().getRaidIntervalSeconds();
             RaidSaveData.get(world).setNextRaidTick(world.getGameTime() + durationTicks + cooldownTicks);
-
 
             int durationMins = (int) (durationTicks / 20 / 60);
             String discordDesc = "**Boss:** " + currentBossName + "\n" +
@@ -707,7 +703,7 @@ public class RaidSession {
     }
 
     public void tick(long tick) {
-        if (state == State.IDLE && !autoRaidEnabled) return;
+        if (state == State.IDLE && !isAutoRaidEnabled()) return;
         if (state == State.PAUSED) { updateBossBarInfo(0, false); return; }
 
         if (!spawnDelays.isEmpty()) {
@@ -748,7 +744,8 @@ public class RaidSession {
                         lastBroadcastTime = System.currentTimeMillis();
                     }
                 }
-                if (next == -1 || (next < tick && next != 0)) RaidSaveData.get(world).setNextRaidTick(tick + raidIntervalTicks);
+
+                if (next == -1 || (next < tick && next != 0)) RaidSaveData.get(world).setNextRaidTick(tick + (20L * PixelmonRaidConfig.getInstance().getRaidIntervalSeconds()));
                 else if (tick >= next) startBattleNow();
                 break;
             case IN_BATTLE:
@@ -756,7 +753,6 @@ public class RaidSession {
                 long durationTicks = 20L * PixelmonRaidConfig.getInstance().getRaidDurationForDifficulty(diff);
                 long elapsed = tick - this.battleStartTick;
                 long rem = durationTicks - elapsed;
-
                 int intervalSeconds = PixelmonRaidConfig.getInstance().getHpBroadcastIntervalSeconds();
                 if (intervalSeconds > 0) {
                     long intervalTicks = intervalSeconds * 20L;
@@ -799,7 +795,8 @@ public class RaidSession {
                 break;
             case COMPLETED:
                 cleanup();
-                RaidSaveData.get(world).setNextRaidTick(tick + raidIntervalTicks); setState(State.IDLE);
+                RaidSaveData.get(world).setNextRaidTick(tick + (20L * PixelmonRaidConfig.getInstance().getRaidIntervalSeconds()));
+                setState(State.IDLE);
                 break;
         }
     }
