@@ -117,7 +117,6 @@ public class RaidSpawner {
 
             if (!world.dimension().location().toString().equals("minecraft:overworld")) return false;
             if (!world.isLoaded(pos)) return false;
-
             if (session.getBossEntityUUIDs() != null) {
                 for (UUID id : new ArrayList<>(session.getBossEntityUUIDs())) {
                     Entity e = world.getEntity(id);
@@ -125,7 +124,6 @@ public class RaidSpawner {
                 }
             }
             session.clearBossEntities();
-
             List<StatueEntity> oldStatues = world.getEntitiesOfClass(StatueEntity.class, new AxisAlignedBB(pos).inflate(2));
             for (StatueEntity old : oldStatues) {
                 try {
@@ -153,8 +151,10 @@ public class RaidSpawner {
 
             try {
                 for (BattleStatsType stat : BattleStatsType.values()) {
-                    try { pokemon.getIVs().setStat(stat, 31); } catch (Throwable ignored) {}
-                    try { pokemon.getEVs().setStat(stat, 252); } catch (Throwable ignored) {}
+                    try { pokemon.getIVs().setStat(stat, 31);
+                    } catch (Throwable ignored) {}
+                    try { pokemon.getEVs().setStat(stat, 252);
+                    } catch (Throwable ignored) {}
                 }
             } catch (Throwable ignored) {}
 
@@ -165,7 +165,6 @@ public class RaidSpawner {
             if (statue == null) return false;
 
             statue.setPokemon(pokemon);
-
             float scale = (float) PixelmonRaidConfig.getInstance().getBossScaleFactor();
             try { statue.setPixelmonScale(scale); } catch (Throwable ignored) {}
 
@@ -173,11 +172,8 @@ public class RaidSpawner {
             statue.getPersistentData().putBoolean("pixelmonraid_template", true);
             statue.getPersistentData().putUUID("pixelmonraid_raidId", session.getRaidId());
 
-            int raidPool = PixelmonRaidConfig.getInstance().getBossHP();
             int wins = RaidSaveData.get(world).getWinStreak();
-            if (wins > 0) {
-                raidPool += (int)(raidPool * (wins * 0.10));
-            }
+            int raidPool = PixelmonRaidConfig.getInstance().getBossHP(currentDiff, wins);
 
             statue.getPersistentData().putInt("pixelmonraid_hp_pool", raidPool);
             session.setTotalRaidHP(raidPool);
@@ -225,18 +221,13 @@ public class RaidSpawner {
 
     private static Species resolveSpecies(String speciesName) {
         if (speciesName == null || speciesName.isEmpty()) return PixelmonSpecies.CHARIZARD.getValueUnsafe();
-
         try {
-
             Optional<RegistryValue<Species>> opt = PixelmonSpecies.get(speciesName);
-
             if (opt.isPresent()) {
                 RegistryValue<Species> regVal = opt.get();
                 if (regVal.isInitialized()) {
                     return regVal.getValueUnsafe();
                 }
-
-
                 Optional<Species> valOpt = regVal.getValue();
                 if (valOpt.isPresent()) {
                     return valOpt.get();
