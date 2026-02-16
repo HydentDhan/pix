@@ -9,6 +9,7 @@ import net.minecraft.util.SoundEvents;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
+import net.minecraftforge.event.entity.player.PlayerContainerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -17,7 +18,7 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.inventory.container.Slot;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.JsonToNBT;
-import java.util.regex.Pattern;
+
 import java.util.UUID;
 import java.util.List;
 import java.util.ArrayList;
@@ -44,132 +45,95 @@ public class RaidAdminUIListener {
     }
 
     @SubscribeEvent
+    public static void onContainerClose(PlayerContainerEvent.Close event) {
+        UUID id = event.getPlayer().getUUID();
+        if (!IS_TRANSITIONING.contains(id)) {
+            RaidAdminCommand.playerMenuState.remove(id);
+            RaidAdminCommand.editingItemIndex.remove(id);
+            RaidAdminCommand.purchasingItemIndex.remove(id);
+            shopQuantities.remove(id);
+        }
+    }
+
+    @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.START || event.player.level.isClientSide) return;
         ServerPlayerEntity player = (ServerPlayerEntity) event.player;
 
+        boolean isMenuOpen = RaidAdminCommand.playerMenuState.containsKey(player.getUUID());
+        String state = isMenuOpen ? RaidAdminCommand.playerMenuState.get(player.getUUID()) : null;
 
-        if (player.tickCount % 5 == 0) {
-            scanAndCleanInventory(player);
-        }
-
-        if (!RaidAdminCommand.playerMenuState.containsKey(player.getUUID())) return;
-        String state = RaidAdminCommand.playerMenuState.get(player.getUUID());
+        boolean dirty = false;
+        boolean handledClick = false;
 
         ItemStack cursorStack = player.inventory.getCarried();
         if (!cursorStack.isEmpty() && isGuiItem(cursorStack)) {
             String rawName = cursorStack.getHoverName().getString();
-            handleButtonClick(player, rawName, state, cursorStack);
             player.inventory.setCarried(ItemStack.EMPTY);
-            player.inventoryMenu.broadcastChanges();
-            player.containerMenu.broadcastChanges();
-            player.refreshContainer(player.containerMenu);
+            dirty = true;
+            if (isMenuOpen && !handledClick) {
+                handledClick = handleButtonClick(player, rawName, state, cursorStack);
+            }
         }
 
-        boolean isRewardEditor = state.equals("killshot") || state.equals("participation") || state.matches("\\d+");
-        if (isRewardEditor && player.containerMenu != null) {
-            for (int i = 0; i < 54; i++) {
-                if (i >= player.containerMenu.slots.size()) break;
-
-                if (i == 49) continue;
-
-                boolean isValidSlot = false;
-                for (int slot : RaidAdminCommand.REWARD_SLOTS) {
-                    if (i == slot) { isValidSlot = true; break; }
+        for (int i = 0; i < player.inventory.getContainerSize(); i++) {
+            ItemStack st = player.inventory.getItem(i);
+            if (!st.isEmpty() && isGuiItem(st)) {
+                String rawName = st.getHoverName().getString();
+                player.inventory.removeItemNoUpdate(i);
+                dirty = true;
+                if (isMenuOpen && !handledClick) {
+                    handledClick = handleButtonClick(player, rawName, state, st);
                 }
+            }
+        }
 
-                if (!isValidSlot) {
-                    Slot s = player.containerMenu.getSlot(i);
-                    if (s != null && s.hasItem()) {
-                        ItemStack is = s.getItem();
+        if (isMenuOpen) {
+            boolean isRewardEditor = state.equals("killshot") || state.equals("participation") || state.matches("\\d+");
+            if (isRewardEditor && player.containerMenu != null) {
+                for (int i = 0; i < 54; i++) {
+                    if (i >= player.containerMenu.slots.size()) break;
+                    if (i == 49) continue;
 
-                        if (!isGuiItem(is)) {
-                            if (player.inventory.add(is)) {
-                                s.set(new ItemStack(Items.GRAY_STAINED_GLASS_PANE));
-                            } else {
-                                player.drop(is, false);
-                                s.set(new ItemStack(Items.GRAY_STAINED_GLASS_PANE));
+                    boolean isValidSlot = false;
+                    for (int slot : RaidAdminCommand.REWARD_SLOTS) {
+                        if (i == slot) { isValidSlot = true; break; }
+                    }
+
+                    if (!isValidSlot) {
+                        Slot s = player.containerMenu.getSlot(i);
+                        if (s != null && s.hasItem()) {
+                            ItemStack is = s.getItem();
+                            if (!isGuiItem(is)) {
+                                if (player.inventory.add(is)) {
+                                    s.set(new ItemStack(Items.GRAY_STAINED_GLASS_PANE));
+                                } else {
+                                    player.drop(is, false);
+                                    s.set(new ItemStack(Items.GRAY_STAINED_GLASS_PANE));
+                                }
                             }
-                        }
-                        else if (!s.hasItem()) {
-                            s.set(new ItemStack(Items.GRAY_STAINED_GLASS_PANE));
                         }
                     }
                 }
             }
         }
-    }
 
+        if (dirty) {
+            player.inventoryMenu.broadcastChanges();
+            if (player.containerMenu != null) player.containerMenu.broadcastChanges();
+
+            if (isMenuOpen && !handledClick && !IS_TRANSITIONING.contains(player.getUUID())) {
+                reopenCurrentGui(player, state);
+            }
+        }
+    }
 
     private static boolean isGuiItem(ItemStack stack) {
         if (stack.isEmpty()) return false;
-
-
-        if (isPane(stack)) return true;
-
-        if (stack.hasTag()) {
-            CompoundNBT tag = stack.getTag();
-
-
-            if (tag.contains("ShopIndex") || tag.contains("RankIndex") || tag.contains("RaidGuiItem")) return true;
-
-
-            if (tag.contains("display")) {
-
-
-                if (stack.getItem() == Items.NETHER_STAR || stack.getItem() == Items.SUNFLOWER ||
-                        stack.getItem() == Items.PAPER || stack.getItem() == Items.CLOCK ||
-                        stack.getItem() == Items.PLAYER_HEAD || stack.getItem() == Items.ARROW ||
-                        stack.getItem() == Items.BARRIER || stack.getItem() == Items.EMERALD) {
-                    return true;
-                }
-
-                String name = TextFormatting.stripFormatting(stack.getHoverName().getString()).toLowerCase();
-                String serverName = TextFormatting.stripFormatting(PixelmonRaidConfig.getInstance().getUiServerName()).toLowerCase();
-
-                if (name.contains(serverName)) return true;
-                if (name.contains("return") || name.contains("back") || name.contains("cancel") ||
-                        name.contains("exit") || name.contains("close") ||
-                        name.contains("next page") || name.contains("previous page")) return true;
-                if (name.contains("start raid") || name.contains("begin raid")) return true;
-                if (name.contains("stop raid") || name.contains("abort") || name.contains("end raid")) return true;
-                if (name.contains("force win") || name.contains("complete raid")) return true;
-                if (name.contains("auto-raids") || name.contains("auto-spawn") || name.contains("toggle auto")) return true;
-                if (name.contains("difficulty:")) return true;
-                if (name.contains("shop editor") || name.contains("edit shop")) return true;
-                if (name.contains("loot tables") || name.contains("rewards") || name.contains("edit drops")) return true;
-                if (name.contains("admin control") || name.contains("panel")) return true;
-                if (name.contains("raid statistics") || name.contains("leaderboard")) return true;
-                if (name.contains("token shop") || name.contains("pokéballs") || name.contains("pokeballs") || name.contains("rare items") ||
-                        name.contains("keys") || name.contains("special")) return true;
-                if (name.contains("confirm purchase") || name.contains("purchase")) return true;
-                if (name.contains("add rank") || name.contains("remove rank")) return true;
-                if (name.contains("balance") || name.contains("tokens") || name.contains("price") || name.contains("cost")) return true;
-                if (name.contains("killshot") || name.contains("participation")) return true;
-                if (name.contains("rank")) return true;
-                if (name.contains("+100") || name.contains("+10") || name.contains("+1") ||
-                        name.contains("-100") || name.contains("-10") || name.contains("-1") ||
-                        name.contains("max") || name.contains("delete item")) return true;
-            }
-        }
-        return false;
+        return stack.hasTag() && stack.getTag().getBoolean("RaidGuiItem");
     }
 
-    private static boolean isPane(ItemStack stack) {
-        return stack.getItem() == Items.GRAY_STAINED_GLASS_PANE ||
-                stack.getItem() == Items.BLACK_STAINED_GLASS_PANE ||
-                stack.getItem() == Items.BLUE_STAINED_GLASS_PANE ||
-                stack.getItem() == Items.PURPLE_STAINED_GLASS_PANE ||
-                stack.getItem() == Items.RED_STAINED_GLASS_PANE ||
-                stack.getItem() == Items.LIME_STAINED_GLASS_PANE ||
-                stack.getItem() == Items.YELLOW_STAINED_GLASS_PANE ||
-                stack.getItem() == Items.MAGENTA_STAINED_GLASS_PANE ||
-                stack.getItem() == Items.WHITE_STAINED_GLASS_PANE;
-    }
-
-
-
-    private static void handleButtonClick(ServerPlayerEntity player, String rawName, String state, ItemStack stack) {
+    private static boolean handleButtonClick(ServerPlayerEntity player, String rawName, String state, ItemStack stack) {
         String cleanName = TextFormatting.stripFormatting(rawName);
         String lowName = cleanName.toLowerCase();
 
@@ -178,7 +142,6 @@ public class RaidAdminUIListener {
 
         if (lowName.contains("return") || lowName.contains("back") || lowName.contains("cancel") || lowName.contains("exit") || lowName.contains("close")) {
             player.playSound(SoundEvents.UI_BUTTON_CLICK, 1.0f, 1.0f);
-
             if (state.matches("\\d+") || state.equals("killshot") || state.equals("participation")) {
                 saveRewardsFromEditor(player, null, state);
             }
@@ -191,7 +154,7 @@ public class RaidAdminUIListener {
                 switchMenu(player, "REWARDS_HUB", () -> RaidAdminCommand.openRewardsHub(player));
             }
             else switchMenu(player, "HUB", () -> RaidAdminCommand.openHub(player));
-            return;
+            return true;
         }
 
         if (state.equals("REWARDS_HUB")) {
@@ -199,55 +162,55 @@ public class RaidAdminUIListener {
                 PixelmonRaidConfig.getInstance().addRank();
                 player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
                 switchMenu(player, "REWARDS_HUB", () -> RaidAdminCommand.openRewardsHub(player));
-                return;
+                return true;
             }
             if (lowName.contains("remove rank")) {
                 PixelmonRaidConfig.getInstance().removeLastRank();
                 player.playSound(SoundEvents.ANVIL_BREAK, 1.0f, 1.0f);
                 switchMenu(player, "REWARDS_HUB", () -> RaidAdminCommand.openRewardsHub(player));
-                return;
+                return true;
             }
             if (stack.hasTag() && stack.getTag().contains("RankIndex")) {
                 int rankIdx = stack.getTag().getInt("RankIndex");
                 player.playSound(SoundEvents.UI_BUTTON_CLICK, 1.0f, 1.0f);
                 switchMenu(player, String.valueOf(rankIdx), () -> RaidAdminCommand.openRewardEditor(player, String.valueOf(rankIdx)));
-                return;
+                return true;
             }
             if (lowName.contains("killshot")) {
                 switchMenu(player, "killshot", () -> RaidAdminCommand.openRewardEditor(player, "killshot"));
-                return;
+                return true;
             }
             if (lowName.contains("participation")) {
                 switchMenu(player, "participation", () -> RaidAdminCommand.openRewardEditor(player, "participation"));
-                return;
+                return true;
             }
         }
 
         if (lowName.contains("start raid") || lowName.contains("begin raid")) {
             if(session!=null) session.startBattleNow();
             switchMenu(player, "HUB", () -> RaidAdminCommand.openHub(player));
-            return;
+            return true;
         }
         if (lowName.contains("force win") || lowName.contains("complete")) {
             if(session!=null) session.finishRaid(true, null);
             switchMenu(player, "HUB", () -> RaidAdminCommand.openHub(player));
-            return;
+            return true;
         }
         if (lowName.contains("abort") || lowName.contains("stop raid") || lowName.contains("end raid")) {
             if(session!=null) session.forceResetTimer();
             switchMenu(player, "HUB", () -> RaidAdminCommand.openHub(player));
-            return;
+            return true;
         }
         if (lowName.contains("auto-raids") || lowName.contains("auto-spawn") || lowName.contains("disable") || lowName.contains("enable")) {
-            if(session != null) {
-                boolean newState = !session.isAutoRaidEnabled();
-                session.setAutoRaidEnabled(newState);
-                player.playSound(SoundEvents.UI_BUTTON_CLICK, 1.0f, 1.0f);
-                if(newState) player.sendMessage(new StringTextComponent("§a[Raid] Auto-Spawn Enabled!"), Util.NIL_UUID);
-                else player.sendMessage(new StringTextComponent("§c[Raid] Auto-Spawn Paused."), Util.NIL_UUID);
-            }
+            boolean newState = !PixelmonRaidConfig.getInstance().isAutoRaidEnabled();
+            PixelmonRaidConfig.getInstance().setAutoRaidEnabled(newState);
+
+            player.playSound(SoundEvents.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            if(newState) player.sendMessage(new StringTextComponent("§a[Raid] Auto-Spawn Enabled!"), Util.NIL_UUID);
+            else player.sendMessage(new StringTextComponent("§c[Raid] Auto-Spawn Paused."), Util.NIL_UUID);
+
             switchMenu(player, "HUB", () -> RaidAdminCommand.openHub(player));
-            return;
+            return true;
         }
 
         if (state.equals("PRICE_EDITOR")) {
@@ -270,7 +233,7 @@ public class RaidAdminUIListener {
                     PixelmonRaidConfig.getInstance().setRaidShopItems(items);
                     player.playSound(SoundEvents.ANVIL_USE, 1.0f, 1.0f);
                     switchMenu(player, "SHOP_EDITOR", () -> RaidAdminCommand.openShopEditor(player));
-                    return;
+                    return true;
                 }
 
                 if (changed) {
@@ -282,11 +245,11 @@ public class RaidAdminUIListener {
                     PixelmonRaidConfig.getInstance().setRaidShopItems(items);
                     player.playSound(SoundEvents.NOTE_BLOCK_PLING, 1.0f, 2.0f);
                     switchMenu(player, "PRICE_EDITOR", () -> RaidAdminCommand.openItemPriceEditor(player, idx));
-                    return;
+                    return true;
                 }
             } else {
                 switchMenu(player, "SHOP_EDITOR", () -> RaidAdminCommand.openShopEditor(player));
-                return;
+                return true;
             }
         }
 
@@ -295,7 +258,7 @@ public class RaidAdminUIListener {
             if (next > 5) next = 1;
             PixelmonRaidConfig.getInstance().setRaidDifficulty(next);
             switchMenu(player, "HUB", () -> RaidAdminCommand.openHub(player));
-            return;
+            return true;
         }
 
         if (state.equals("SHOP_EDITOR")) {
@@ -303,18 +266,18 @@ public class RaidAdminUIListener {
                 int index = stack.getTag().getInt("ShopIndex");
                 player.playSound(SoundEvents.UI_BUTTON_CLICK, 1.0f, 1.0f);
                 switchMenu(player, "PRICE_EDITOR", () -> RaidAdminCommand.openItemPriceEditor(player, index));
-                return;
+                return true;
             }
         }
 
-        if (lowName.contains("shop editor") || lowName.contains("edit shop")) { switchMenu(player, "SHOP_EDITOR", () -> RaidAdminCommand.openShopEditor(player)); return; }
-        if (lowName.contains("loot tables") || lowName.contains("rewards")) { switchMenu(player, "REWARDS_HUB", () -> RaidAdminCommand.openRewardsHub(player)); return; }
+        if (lowName.contains("shop editor") || lowName.contains("edit shop")) { switchMenu(player, "SHOP_EDITOR", () -> RaidAdminCommand.openShopEditor(player)); return true; }
+        if (lowName.contains("loot tables") || lowName.contains("rewards")) { switchMenu(player, "REWARDS_HUB", () -> RaidAdminCommand.openRewardsHub(player)); return true; }
 
         if (state.equals("TOKEN_SHOP")) {
-            if (lowName.contains("pokéballs") || lowName.contains("pokeballs")) { switchMenu(player, "SHOP_BALLS", () -> RaidAdminCommand.openShopCategory(player, "BALLS")); return; }
-            if (lowName.contains("rare items")) { switchMenu(player, "SHOP_RARE", () -> RaidAdminCommand.openShopCategory(player, "RARE")); return; }
-            if (lowName.contains("keys")) { switchMenu(player, "SHOP_KEYS", () -> RaidAdminCommand.openShopCategory(player, "KEYS")); return; }
-            if (lowName.contains("special")) { switchMenu(player, "SHOP_SPECIAL", () -> RaidAdminCommand.openShopCategory(player, "SPECIAL")); return; }
+            if (lowName.contains("pokéballs") || lowName.contains("pokeballs")) { switchMenu(player, "SHOP_BALLS", () -> RaidAdminCommand.openShopCategory(player, "BALLS")); return true; }
+            if (lowName.contains("rare items")) { switchMenu(player, "SHOP_RARE", () -> RaidAdminCommand.openShopCategory(player, "RARE")); return true; }
+            if (lowName.contains("keys")) { switchMenu(player, "SHOP_KEYS", () -> RaidAdminCommand.openShopCategory(player, "KEYS")); return true; }
+            if (lowName.contains("special")) { switchMenu(player, "SHOP_SPECIAL", () -> RaidAdminCommand.openShopCategory(player, "SPECIAL")); return true; }
         }
 
         if (state.equals("PURCHASE_UI")) {
@@ -349,7 +312,7 @@ public class RaidAdminUIListener {
                     shopQuantities.put(player.getUUID(), currentQty);
                     player.playSound(SoundEvents.NOTE_BLOCK_PLING, 1.0f, 1.5f);
                     switchMenu(player, "PURCHASE_UI", () -> RaidAdminCommand.openPurchasePanel(player, idx));
-                    return;
+                    return true;
                 }
 
                 if (cleanName.contains("CONFIRM PURCHASE")) {
@@ -362,12 +325,12 @@ public class RaidAdminUIListener {
                         int totalCost = baseCost * currentQty;
                         int totalItems = baseCount * currentQty;
                         int bal = RaidSaveData.get(world).getTokens(player.getUUID());
-
                         if (bal >= totalCost) {
                             RaidSaveData.get(world).removeTokens(player.getUUID(), totalCost);
                             ResourceLocation res = new ResourceLocation(parts[0]);
                             ItemStack give = new ItemStack(ForgeRegistries.ITEMS.getValue(res), totalItems);
-                            try { if (parts.length > 4 || entry.contains("{")) { String nbtStr = entry.substring(entry.indexOf("{")); CompoundNBT nbt = JsonToNBT.parseTag(nbtStr); give.setTag(nbt); } } catch(Exception ignored){}
+                            try { if (parts.length > 4 || entry.contains("{")) { String nbtStr = entry.substring(entry.indexOf("{")); CompoundNBT nbt = JsonToNBT.parseTag(nbtStr); give.setTag(nbt);
+                            } } catch(Exception ignored){}
                             if (!player.inventory.add(give)) { player.drop(give, false); }
                             player.playSound(SoundEvents.PLAYER_LEVELUP, 1.0f, 1.0f);
                             player.sendMessage(new StringTextComponent("§aSuccessful Purchase!"), Util.NIL_UUID);
@@ -376,7 +339,7 @@ public class RaidAdminUIListener {
                             player.playSound(SoundEvents.NOTE_BLOCK_BASS, 1.0f, 0.5f);
                         }
                     }
-                    return;
+                    return true;
                 }
             }
         }
@@ -387,9 +350,11 @@ public class RaidAdminUIListener {
                 player.playSound(SoundEvents.UI_BUTTON_CLICK, 1.0f, 1.0f);
                 shopQuantities.put(player.getUUID(), 1);
                 switchMenu(player, "PURCHASE_UI", () -> RaidAdminCommand.openPurchasePanel(player, index));
-                return;
+                return true;
             }
         }
+
+        return false;
     }
 
     private static void switchMenu(ServerPlayerEntity player, String newState, Runnable openAction) {
@@ -403,26 +368,32 @@ public class RaidAdminUIListener {
         });
     }
 
-    private static void scanAndCleanInventory(ServerPlayerEntity player) {
-        if (player.inventory == null) return;
-        boolean dirty = false;
-
-        for (int i = 0; i < player.inventory.getContainerSize(); i++) {
-            ItemStack st = player.inventory.getItem(i);
-            if (!st.isEmpty() && isGuiItem(st)) {
-                player.inventory.removeItem(st);
-                dirty = true;
+    public static void reopenCurrentGui(ServerPlayerEntity player, String state) {
+        player.getServer().execute(() -> {
+            IS_TRANSITIONING.add(player.getUUID());
+            try {
+                if (state.equals("HUB")) RaidAdminCommand.openHub(player);
+                else if (state.equals("REWARDS_HUB")) RaidAdminCommand.openRewardsHub(player);
+                else if (state.equals("TOKEN_SHOP")) RaidAdminCommand.openTokenShop(player);
+                else if (state.equals("PURCHASE_UI")) {
+                    int idx = RaidAdminCommand.purchasingItemIndex.getOrDefault(player.getUUID(), 0);
+                    RaidAdminCommand.openPurchasePanel(player, idx);
+                }
+                else if (state.startsWith("SHOP_") && !state.equals("SHOP_EDITOR")) {
+                    RaidAdminCommand.openShopCategory(player, state.substring(5));
+                }
+                else if (state.equals("SHOP_EDITOR")) RaidAdminCommand.openShopEditor(player);
+                else if (state.equals("PRICE_EDITOR")) {
+                    int idx = RaidAdminCommand.editingItemIndex.getOrDefault(player.getUUID(), 0);
+                    RaidAdminCommand.openItemPriceEditor(player, idx);
+                }
+                else if (state.equals("killshot") || state.equals("participation") || state.matches("\\d+")) {
+                    RaidAdminCommand.openRewardEditor(player, state);
+                }
+            } finally {
+                IS_TRANSITIONING.remove(player.getUUID());
             }
-        }
-
-
-        ItemStack cursor = player.inventory.getCarried();
-        if (!cursor.isEmpty() && isGuiItem(cursor)) {
-            player.inventory.setCarried(ItemStack.EMPTY);
-            dirty = true;
-        }
-
-        if (dirty) player.inventoryMenu.broadcastChanges();
+        });
     }
 
     private static void saveRewardsFromEditor(ServerPlayerEntity player, Object ignored, String rankId) {
