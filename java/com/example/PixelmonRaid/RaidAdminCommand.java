@@ -160,6 +160,7 @@ public class RaidAdminCommand {
                 )
                 .then(Commands.literal("setholo")
                         .executes(ctx -> {
+                            if (!(ctx.getSource().getEntity() instanceof ServerPlayerEntity)) return 0;
                             ServerPlayerEntity player = (ServerPlayerEntity) ctx.getSource().getEntity();
                             PixelmonRaidConfig.getInstance().setHoloLocation(
                                     player.getX(), player.getY() + 2.0, player.getZ(),
@@ -184,6 +185,7 @@ public class RaidAdminCommand {
                                         .suggests((c, b) -> ISuggestionProvider.suggest(new String[]{"BALLS", "RARE", "KEYS", "SPECIAL"}, b))
                                         .then(Commands.argument("price", IntegerArgumentType.integer(1))
                                                 .executes(ctx -> {
+                                                    if (!(ctx.getSource().getEntity() instanceof ServerPlayerEntity)) return 0;
                                                     ServerPlayerEntity player = (ServerPlayerEntity) ctx.getSource().getEntity();
                                                     String cat = StringArgumentType.getString(ctx, "category").toUpperCase();
                                                     int price = IntegerArgumentType.getInteger(ctx, "price");
@@ -210,7 +212,13 @@ public class RaidAdminCommand {
                                 )
                         )
                 )
-                .executes(context -> openHub((ServerPlayerEntity) context.getSource().getEntity()))
+                .executes(context -> {
+                    if (!(context.getSource().getEntity() instanceof ServerPlayerEntity)) {
+                        context.getSource().sendFailure(new StringTextComponent("Only a player can open the Raid Admin GUI!"));
+                        return 0;
+                    }
+                    return openHub((ServerPlayerEntity) context.getSource().getEntity());
+                })
         );
     }
 
@@ -226,7 +234,7 @@ public class RaidAdminCommand {
             ChestContainer container = ChestContainer.sixRows(id, playerInv);
             fillBorder(container, 6, getBorderItem());
 
-            container.setItem(4, createGuiItem(getLogoItem(), getName(), "§7Admin Control Panel", "§7Version 3.4"));
+            container.setItem(4, createGuiItem(getLogoItem(), getName(), "§7Admin Control Panel", "§7Version 3.5"));
 
             if (isBattleActive) {
                 container.setItem(19, createGuiItem(Items.BARRIER, "§7§lRaid In Progress", "§cCannot start new raid", "§cwhile one is active."));
