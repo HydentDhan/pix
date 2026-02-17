@@ -111,7 +111,7 @@ public class RaidLeaderboardCommand {
             chest.setItem(4, info);
 
             return chest;
-        }, new StringTextComponent(isActive ? "§8§lCurrent Raid Stats" : "§8§lLast Raid Stats")));
+        }, new StringTextComponent(isActive ? PixelmonRaidConfig.getInstance().getUiCurrentLeaderboardTitle() : PixelmonRaidConfig.getInstance().getUiLastLeaderboardTitle())));
 
         RaidLeaderboardUIListener.openPages.put(player.getUUID(), 0);
     }
@@ -169,7 +169,6 @@ public class RaidLeaderboardCommand {
                 ItemStack head = new ItemStack(Items.PLAYER_HEAD);
 
                 CompoundNBT tag = head.getOrCreateTag();
-
 
                 CompoundNBT skullOwner = new CompoundNBT();
                 skullOwner.putUUID("Id", entry.getKey());
