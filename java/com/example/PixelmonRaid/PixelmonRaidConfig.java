@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
@@ -14,18 +15,19 @@ public class PixelmonRaidConfig {
     private static final File backupFile = new File("config/pixelmonraid_backup.json");
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-    public static final int CURRENT_CONFIG_VERSION = 5;
+
+    public static final int CURRENT_CONFIG_VERSION = 6;
     private int configVersion = CURRENT_CONFIG_VERSION;
 
-    private String msgRaidStart = "&d&l☠ THE RAID BOSS HAS SPAWNED! &fUse &e/raid join &fto fight!";
-    private String msgRaidWin = "&6&l🏆 RAID VICTORY! &eThe boss has been defeated!";
-    private String msgRaidLoss = "&c&l✖ RAID FAILED! &7The boss escaped...";
-    private String msgEnrage = "&c&l⚡ THE BOSS IS ENRAGED! ⚡";
-    private String msgJoin = "&e&l⚠ BATTLE INITIATING... PREPARE YOURSELF! ⚠";
-    private String msgCooldown = "&c&l⏳ WAITING FOR STAMINA... &7(%s)";
-    private String msgKillshot = "&4&l☠ %player% DEALT THE FINAL BLOW! ☠";
-    private String msgWarn60 = "&e&l⚠ RAID STARTING IN 1 MINUTE! &fPrepare your team!";
-    private String msgWarn30 = "&6&l⚠ RAID STARTING IN 30 SECONDS! &fType &e/raid join &fnow!";
+    private String msgRaidStart = "&d&l[☠] THE RAID BOSS HAS SPAWNED! &fUse &e/raid join &fto fight!";
+    private String msgRaidWin = "&6&l[★] RAID VICTORY! &eThe boss has been defeated!";
+    private String msgRaidLoss = "&c&l[✖] RAID FAILED! &7The boss escaped...";
+    private String msgEnrage = "&c&l[⚡] THE BOSS IS ENRAGED! [⚡]";
+    private String msgJoin = "&e&l[⚠] BATTLE INITIATING... PREPARE YOURSELF! [⚠]";
+    private String msgCooldown = "&c&l[⌛] WAITING FOR STAMINA... &7(%s)";
+    private String msgKillshot = "&4&l[☠] %player% DEALT THE FINAL BLOW! [☠]";
+    private String msgWarn60 = "&e&l[⚠] RAID STARTING IN 1 MINUTE! &fPrepare your team!";
+    private String msgWarn30 = "&6&l[⚠] RAID STARTING IN 30 SECONDS! &fType &e/raid join &fnow!";
 
     private String discordWebhookUrl = "";
     private List<String> bossListLevel1 = new ArrayList<>(Arrays.asList("Bulbasaur", "Charmander", "Squirtle"));
@@ -66,11 +68,14 @@ public class PixelmonRaidConfig {
     private int raidDurationSeconds = 300;
     private int rejoinCooldownSeconds = 10;
     private int hpBroadcastIntervalSeconds = 60;
+
     private String uiServerName = "&d&lMY SERVER RAIDS";
     private String uiThemeColor = "&5";
     private String uiLogoItem = "minecraft:nether_star";
     private String uiBorderItem = "minecraft:purple_stained_glass_pane";
-    private String uiLeaderboardTitle = "&8&lRaid Leaderboard";
+    private String uiLeaderboardTitle = "&8&lAll-Time Raid Stats";
+    private String uiCurrentLeaderboardTitle = "&8&lCurrent Raid Stats";
+    private String uiLastLeaderboardTitle = "&8&lLast Raid Stats";
 
     private int raidDurationLevel1 = 300;
     private int raidDurationLevel2 = 360;
@@ -87,17 +92,6 @@ public class PixelmonRaidConfig {
     private List<String> raidShopItems = new ArrayList<>(Arrays.asList("pixelmon:rare_candy 1 1", "pixelmon:master_ball 50 1", "pixelmon:park_ball 20 1"));
     private Map<String, List<String>> rankRewards = new LinkedHashMap<>();
     private Map<String, Integer> rankMoney = new LinkedHashMap<>();
-
-    private List<String> rewardsRank1;
-    private List<String> rewardsRank2;
-    private List<String> rewardsRank3;
-    private List<String> rewardsRank4;
-    private List<String> rewardsRank5;
-    private int moneyRank1;
-    private int moneyRank2;
-    private int moneyRank3;
-    private int moneyRank4;
-    private int moneyRank5;
 
     private List<String> rewardsWinningParticipation = new ArrayList<>();
     private List<String> rewardsParticipation = new ArrayList<>();
@@ -134,7 +128,7 @@ public class PixelmonRaidConfig {
             return;
         }
 
-        try (Reader reader = new FileReader(configFile)) {
+        try (Reader reader = new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8)) {
             PixelmonRaidConfig data = gson.fromJson(reader, PixelmonRaidConfig.class);
             if (data == null) {
                 System.err.println("[PixelmonRaid] Config file was empty or invalid. Keeping defaults.");
@@ -146,7 +140,6 @@ public class PixelmonRaidConfig {
                 System.out.println("[PixelmonRaid] Older config version detected (" + data.configVersion + "). Upgrading to version " + CURRENT_CONFIG_VERSION + "...");
                 try {
                     Files.copy(configFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    System.out.println("[PixelmonRaid] Created backup of old config at pixelmonraid_backup.json");
                 } catch (IOException e) {
                     System.err.println("[PixelmonRaid] Failed to create config backup!");
                 }
@@ -206,11 +199,15 @@ public class PixelmonRaidConfig {
 
             this.dynamicDifficulty = data.dynamicDifficulty;
             if (data.difficultyScalePerPlayer > 0) this.difficultyScalePerPlayer = data.difficultyScalePerPlayer;
+
             if (data.uiServerName != null) this.uiServerName = data.uiServerName;
             if (data.uiThemeColor != null) this.uiThemeColor = data.uiThemeColor;
             if (data.uiLogoItem != null) this.uiLogoItem = data.uiLogoItem;
             if (data.uiBorderItem != null) this.uiBorderItem = data.uiBorderItem;
             if (data.uiLeaderboardTitle != null) this.uiLeaderboardTitle = data.uiLeaderboardTitle;
+            if (data.uiCurrentLeaderboardTitle != null) this.uiCurrentLeaderboardTitle = data.uiCurrentLeaderboardTitle;
+            if (data.uiLastLeaderboardTitle != null) this.uiLastLeaderboardTitle = data.uiLastLeaderboardTitle;
+
             if (data.raidDurationLevel1 > 0) this.raidDurationLevel1 = data.raidDurationLevel1;
             if (data.raidDurationLevel2 > 0) this.raidDurationLevel2 = data.raidDurationLevel2;
             if (data.raidDurationLevel3 > 0) this.raidDurationLevel3 = data.raidDurationLevel3;
@@ -224,24 +221,12 @@ public class PixelmonRaidConfig {
             this.tokensDropLevel4 = data.tokensDropLevel4;
             this.tokensDropLevel5 = data.tokensDropLevel5;
             if(data.tokenDropChance > 0) this.tokenDropChance = data.tokenDropChance;
+
             if (data.rankRewards != null && !data.rankRewards.isEmpty()) {
                 this.rankRewards = new LinkedHashMap<>(data.rankRewards);
-            } else {
-                if (data.rewardsRank1 != null) this.rankRewards.put("1", data.rewardsRank1);
-                if (data.rewardsRank2 != null) this.rankRewards.put("2", data.rewardsRank2);
-                if (data.rewardsRank3 != null) this.rankRewards.put("3", data.rewardsRank3);
-                if (data.rewardsRank4 != null) this.rankRewards.put("4", data.rewardsRank4);
-                if (data.rewardsRank5 != null) this.rankRewards.put("5", data.rewardsRank5);
             }
-
             if (data.rankMoney != null && !data.rankMoney.isEmpty()) {
                 this.rankMoney = new LinkedHashMap<>(data.rankMoney);
-            } else {
-                if (data.moneyRank1 > 0) this.rankMoney.put("1", data.moneyRank1);
-                if (data.moneyRank2 > 0) this.rankMoney.put("2", data.moneyRank2);
-                if (data.moneyRank3 > 0) this.rankMoney.put("3", data.moneyRank3);
-                if (data.moneyRank4 > 0) this.rankMoney.put("4", data.moneyRank4);
-                if (data.moneyRank5 > 0) this.rankMoney.put("5", data.moneyRank5);
             }
 
             this.rewardsParticipation = data.rewardsParticipation;
@@ -257,7 +242,6 @@ public class PixelmonRaidConfig {
 
             if (needsUpdate) {
                 save();
-                System.out.println("[PixelmonRaid] Config successfully updated to version " + CURRENT_CONFIG_VERSION);
             }
         } catch (JsonSyntaxException e) {
             System.err.println("[PixelmonRaid] ERROR: Config file has invalid JSON syntax! Backing up and resetting to prevent crashes.");
@@ -291,9 +275,14 @@ public class PixelmonRaidConfig {
     }
 
     public void save() {
-        try (Writer writer = new FileWriter(configFile)) {
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(configFile), StandardCharsets.UTF_8)) {
             gson.toJson(this, writer);
         } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    private String formatColor(String str) {
+        if (str == null || str.isEmpty()) return "";
+        return str.replace("&", "\u00A7");
     }
 
     public boolean isAutoRaidEnabled() { return autoRaidEnabled; }
@@ -309,9 +298,7 @@ public class PixelmonRaidConfig {
     public String getHoloWorld() { return holoWorld; }
 
     public void setHoloLocation(double x, double y, double z, String world) {
-        this.holoX = x;
-        this.holoY = y; this.holoZ = z; this.holoWorld = world;
-        save();
+        this.holoX = x; this.holoY = y; this.holoZ = z; this.holoWorld = world; save();
     }
 
     public int getRankCount() { return rankRewards.size(); }
@@ -323,11 +310,7 @@ public class PixelmonRaidConfig {
     }
     public void removeLastRank() {
         int size = rankRewards.size();
-        if (size > 1) {
-            rankRewards.remove(String.valueOf(size));
-            rankMoney.remove(String.valueOf(size));
-            save();
-        }
+        if (size > 1) { rankRewards.remove(String.valueOf(size)); rankMoney.remove(String.valueOf(size)); save(); }
     }
 
     public List<String> getRewardsForRank(int rank) { return rankRewards.getOrDefault(String.valueOf(rank), null); }
@@ -335,25 +318,27 @@ public class PixelmonRaidConfig {
     public int getMoneyForRank(int rank) { return rankMoney.getOrDefault(String.valueOf(rank), 0); }
     public void setMoneyForRank(int rank, int amount) { rankMoney.put(String.valueOf(rank), amount); save(); }
 
-    public String getMsgRaidStart() { return msgRaidStart.replace("&", "§"); }
-    public String getMsgRaidWin() { return msgRaidWin.replace("&", "§"); }
-    public String getMsgRaidLoss() { return msgRaidLoss.replace("&", "§"); }
-    public String getMsgEnrage() { return msgEnrage.replace("&", "§"); }
-    public String getMsgJoin() { return msgJoin.replace("&", "§"); }
-    public String getMsgCooldown() { return msgCooldown.replace("&", "§"); }
-    public String getMsgKillshot() { return msgKillshot.replace("&", "§"); }
-    public String getMsgWarn60() { return msgWarn60.replace("&", "§"); }
-    public String getMsgWarn30() { return msgWarn30.replace("&", "§"); }
+    public String getMsgRaidStart() { return formatColor(msgRaidStart); }
+    public String getMsgRaidWin() { return formatColor(msgRaidWin); }
+    public String getMsgRaidLoss() { return formatColor(msgRaidLoss); }
+    public String getMsgEnrage() { return formatColor(msgEnrage); }
+    public String getMsgJoin() { return formatColor(msgJoin); }
+    public String getMsgCooldown() { return formatColor(msgCooldown); }
+    public String getMsgKillshot() { return formatColor(msgKillshot); }
+    public String getMsgWarn60() { return formatColor(msgWarn60); }
+    public String getMsgWarn30() { return formatColor(msgWarn30); }
 
     public boolean isDynamicDifficulty() { return dynamicDifficulty; }
     public double getDifficultyScale() { return difficultyScalePerPlayer; }
 
     public int getRejoinCooldownSeconds() { return rejoinCooldownSeconds; }
-    public String getUiServerName() { return uiServerName.replace("&", "§"); }
-    public String getUiThemeColor() { return uiThemeColor.replace("&", "§"); }
+    public String getUiServerName() { return formatColor(uiServerName); }
+    public String getUiThemeColor() { return formatColor(uiThemeColor); }
     public String getUiLogoItem() { return uiLogoItem; }
     public String getUiBorderItem() { return uiBorderItem; }
-    public String getUiLeaderboardTitle() { return uiLeaderboardTitle.replace("&", "§"); }
+    public String getUiLeaderboardTitle() { return formatColor(uiLeaderboardTitle); }
+    public String getUiCurrentLeaderboardTitle() { return formatColor(uiCurrentLeaderboardTitle); }
+    public String getUiLastLeaderboardTitle() { return formatColor(uiLastLeaderboardTitle); }
 
     public void setRaidDurationSeconds(int seconds) { this.raidDurationSeconds = seconds; save(); }
     public int getRaidDurationSeconds() { return this.raidDurationSeconds > 0 ? this.raidDurationSeconds : 300; }
