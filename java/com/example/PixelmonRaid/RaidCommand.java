@@ -54,9 +54,8 @@ public class RaidCommand {
                                     BlockPos center = session.getCenter();
 
                                     if (center != null && player.blockPosition().distSqr(center) > (JOIN_RADIUS * JOIN_RADIUS)) {
-                                        player.sendMessage(new StringTextComponent("§c§l❌ TOO FAR! ❌"), Util.NIL_UUID);
+                                        player.sendMessage(new StringTextComponent("§c§l✖ TOO FAR! ✖"), Util.NIL_UUID);
                                         player.sendMessage(new StringTextComponent("§7You must be within §e" + JOIN_RADIUS + " blocks §7of the Boss to join!"), Util.NIL_UUID);
-
                                         ServerWorld world = (ServerWorld) player.level;
                                         for (int i = 0; i < 360; i += 10) {
                                             double angle = Math.toRadians(i);
@@ -68,7 +67,7 @@ public class RaidCommand {
                                     }
                                     session.startPlayerBattleRequest(player);
                                 } else {
-                                    player.sendMessage(new StringTextComponent("§c§l❌ NO ACTIVE RAID ❌"), Util.NIL_UUID);
+                                    player.sendMessage(new StringTextComponent("§c§l✖ NO ACTIVE RAID ✖"), Util.NIL_UUID);
                                 }
                             }
                             return 1;
@@ -99,7 +98,6 @@ public class RaidCommand {
 
                                 String displayBossName = session.getCurrentBossName();
                                 boolean isMystery = false;
-
                                 if (session.getState() == RaidSession.State.IDLE) {
                                     isMystery = true;
                                     if (!session.isAutoRaidEnabled()) {
@@ -116,22 +114,19 @@ public class RaidCommand {
                                 }
 
                                 if (isMystery) displayBossName = "§k???§r §7(Mystery)§r";
-
                                 int currentHP = session.getTotalRaidHP();
                                 int maxHP = Math.max(1, session.getMaxRaidHP());
                                 float pct = (float)currentHP / (float)maxHP * 100f;
-
                                 String hpDisplay = isMystery ? "§7???" : "§d" + currentHP + " §7/ §d" + maxHP + " §8(§b" + String.format("%.1f%%", pct) + "§8)";
-
                                 String msg = "\n" +
                                         "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-                                        "       §5§l⚔ PIXELMON RAID STATUS ⚔       \n" +
+                                        "       §5§l⚔ PIXELMON RAID STATUS ⚔    \n" +
                                         "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-                                        " §e📡 Current Phase:  §f" + session.getState() + "\n" +
+                                        " §e► Current Phase:  §f" + session.getState() + "\n" +
                                         " §e☠ Target Boss:    §c§l" + displayBossName + "\n" +
                                         " §e❤ Boss Vitality:  " + hpDisplay + "\n" +
-                                        " §e⏱ Timer Info:     " + timeMsg + "\n" +
-                                        " §e🗡 Challengers:    §a" + session.getPlayers().size() + " Active\n" +
+                                        " §e⌛ Timer Info:     " + timeMsg + "\n" +
+                                        " §e❖ Challengers:    §a" + session.getPlayers().size() + " Active\n" +
                                         "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
                                 context.getSource().sendSuccess(new StringTextComponent(msg), false);
                             }
@@ -156,9 +151,24 @@ public class RaidCommand {
     }
 
     private static String formatTime(long ticks) {
-        long seconds = ticks / 20;
-        long minutes = seconds / 60;
-        seconds = seconds % 60;
-        return String.format("%02d:%02d", minutes, seconds);
+        long totalSeconds = ticks / 20;
+
+        if (totalSeconds < 60) {
+            return totalSeconds + "s";
+        }
+
+        long minutes = totalSeconds / 60;
+        long hours = minutes / 60;
+        long days = hours / 24;
+
+        minutes %= 60;
+        hours %= 24;
+
+        StringBuilder timeStr = new StringBuilder();
+        if (days > 0) timeStr.append(days).append("d ");
+        if (hours > 0) timeStr.append(hours).append("h ");
+        if (minutes > 0) timeStr.append(minutes).append("m");
+
+        return timeStr.toString().trim();
     }
 }
