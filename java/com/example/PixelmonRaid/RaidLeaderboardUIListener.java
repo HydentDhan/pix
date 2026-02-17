@@ -9,6 +9,7 @@ import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.event.entity.player.PlayerContainerEvent;
+import net.minecraft.network.play.server.SSetSlotPacket;
 
 import java.util.Map;
 import java.util.UUID;
@@ -37,26 +38,6 @@ public class RaidLeaderboardUIListener {
 
         boolean guiRestored = false;
 
-        if (player.tickCount % 5 == 0) {
-            boolean dirty = false;
-            for (int i = 0; i < player.inventory.getContainerSize(); i++) {
-                ItemStack st = player.inventory.getItem(i);
-                if (!st.isEmpty() && isLeaderboardItem(st)) {
-                    player.inventory.removeItemNoUpdate(i);
-                    dirty = true;
-                }
-            }
-            ItemStack cursor = player.inventory.getCarried();
-            if (!cursor.isEmpty() && isLeaderboardItem(cursor)) {
-                player.inventory.setCarried(ItemStack.EMPTY);
-                dirty = true;
-            }
-            if (dirty) {
-                player.inventoryMenu.broadcastChanges();
-                guiRestored = true;
-            }
-        }
-
         if (!openPages.containsKey(player.getUUID())) return;
 
         ItemStack cursor = player.inventory.getCarried();
@@ -64,10 +45,12 @@ public class RaidLeaderboardUIListener {
             String name = TextFormatting.stripFormatting(cursor.getHoverName().getString()).toLowerCase();
             boolean handled = false;
 
+            player.inventory.setCarried(ItemStack.EMPTY);
+            player.connection.send(new SSetSlotPacket(-1, -1, ItemStack.EMPTY));
+
             if (name.contains("next page")) {
                 int page = openPages.get(player.getUUID());
                 if (page > 0) {
-                    player.inventory.setCarried(ItemStack.EMPTY);
                     player.playSound(SoundEvents.UI_BUTTON_CLICK, 1f, 1f);
                     RaidLeaderboardCommand.openLeaderboard(player, page + 1);
                     handled = true;
@@ -76,14 +59,10 @@ public class RaidLeaderboardUIListener {
             else if (name.contains("previous page")) {
                 int page = openPages.get(player.getUUID());
                 if (page > 0) {
-                    player.inventory.setCarried(ItemStack.EMPTY);
                     player.playSound(SoundEvents.UI_BUTTON_CLICK, 1f, 1f);
                     RaidLeaderboardCommand.openLeaderboard(player, page - 1);
                     handled = true;
                 }
-            }
-            else {
-                player.inventory.setCarried(ItemStack.EMPTY);
             }
 
             if (!handled) {
@@ -91,15 +70,24 @@ public class RaidLeaderboardUIListener {
             }
         }
 
+        for (int i = 0; i < player.inventory.getContainerSize(); i++) {
+            ItemStack st = player.inventory.getItem(i);
+            if (!st.isEmpty() && isLeaderboardItem(st)) {
+                player.inventory.removeItemNoUpdate(i);
+                guiRestored = true;
+            }
+        }
+
         if (guiRestored) {
+            player.inventoryMenu.broadcastChanges();
+            if (player.containerMenu != null) player.containerMenu.broadcastChanges();
+
             int page = openPages.getOrDefault(player.getUUID(), 1);
-            player.getServer().execute(() -> {
-                if (page == 0) {
-                    RaidLeaderboardCommand.openLastRaidLeaderboard(player);
-                } else {
-                    RaidLeaderboardCommand.openLeaderboard(player, page);
-                }
-            });
+            if (page == 0) {
+                RaidLeaderboardCommand.openLastRaidLeaderboard(player);
+            } else {
+                RaidLeaderboardCommand.openLeaderboard(player, page);
+            }
         }
     }
 
