@@ -18,6 +18,7 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.inventory.container.Slot;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.JsonToNBT;
+import net.minecraft.network.play.server.SSetSlotPacket;
 
 import java.util.UUID;
 import java.util.List;
@@ -69,8 +70,11 @@ public class RaidAdminUIListener {
         ItemStack cursorStack = player.inventory.getCarried();
         if (!cursorStack.isEmpty() && isGuiItem(cursorStack)) {
             String rawName = cursorStack.getHoverName().getString();
+
             player.inventory.setCarried(ItemStack.EMPTY);
+            player.connection.send(new SSetSlotPacket(-1, -1, ItemStack.EMPTY));
             dirty = true;
+
             if (isMenuOpen && !handledClick) {
                 handledClick = handleButtonClick(player, rawName, state, cursorStack);
             }
@@ -358,42 +362,38 @@ public class RaidAdminUIListener {
     }
 
     private static void switchMenu(ServerPlayerEntity player, String newState, Runnable openAction) {
-        player.getServer().execute(() -> {
-            IS_TRANSITIONING.add(player.getUUID());
-            try {
-                openAction.run();
-            } finally {
-                IS_TRANSITIONING.remove(player.getUUID());
-            }
-        });
+        IS_TRANSITIONING.add(player.getUUID());
+        try {
+            openAction.run();
+        } finally {
+            IS_TRANSITIONING.remove(player.getUUID());
+        }
     }
 
     public static void reopenCurrentGui(ServerPlayerEntity player, String state) {
-        player.getServer().execute(() -> {
-            IS_TRANSITIONING.add(player.getUUID());
-            try {
-                if (state.equals("HUB")) RaidAdminCommand.openHub(player);
-                else if (state.equals("REWARDS_HUB")) RaidAdminCommand.openRewardsHub(player);
-                else if (state.equals("TOKEN_SHOP")) RaidAdminCommand.openTokenShop(player);
-                else if (state.equals("PURCHASE_UI")) {
-                    int idx = RaidAdminCommand.purchasingItemIndex.getOrDefault(player.getUUID(), 0);
-                    RaidAdminCommand.openPurchasePanel(player, idx);
-                }
-                else if (state.startsWith("SHOP_") && !state.equals("SHOP_EDITOR")) {
-                    RaidAdminCommand.openShopCategory(player, state.substring(5));
-                }
-                else if (state.equals("SHOP_EDITOR")) RaidAdminCommand.openShopEditor(player);
-                else if (state.equals("PRICE_EDITOR")) {
-                    int idx = RaidAdminCommand.editingItemIndex.getOrDefault(player.getUUID(), 0);
-                    RaidAdminCommand.openItemPriceEditor(player, idx);
-                }
-                else if (state.equals("killshot") || state.equals("participation") || state.matches("\\d+")) {
-                    RaidAdminCommand.openRewardEditor(player, state);
-                }
-            } finally {
-                IS_TRANSITIONING.remove(player.getUUID());
+        IS_TRANSITIONING.add(player.getUUID());
+        try {
+            if (state.equals("HUB")) RaidAdminCommand.openHub(player);
+            else if (state.equals("REWARDS_HUB")) RaidAdminCommand.openRewardsHub(player);
+            else if (state.equals("TOKEN_SHOP")) RaidAdminCommand.openTokenShop(player);
+            else if (state.equals("PURCHASE_UI")) {
+                int idx = RaidAdminCommand.purchasingItemIndex.getOrDefault(player.getUUID(), 0);
+                RaidAdminCommand.openPurchasePanel(player, idx);
             }
-        });
+            else if (state.startsWith("SHOP_") && !state.equals("SHOP_EDITOR")) {
+                RaidAdminCommand.openShopCategory(player, state.substring(5));
+            }
+            else if (state.equals("SHOP_EDITOR")) RaidAdminCommand.openShopEditor(player);
+            else if (state.equals("PRICE_EDITOR")) {
+                int idx = RaidAdminCommand.editingItemIndex.getOrDefault(player.getUUID(), 0);
+                RaidAdminCommand.openItemPriceEditor(player, idx);
+            }
+            else if (state.equals("killshot") || state.equals("participation") || state.matches("\\d+")) {
+                RaidAdminCommand.openRewardEditor(player, state);
+            }
+        } finally {
+            IS_TRANSITIONING.remove(player.getUUID());
+        }
     }
 
     private static void saveRewardsFromEditor(ServerPlayerEntity player, Object ignored, String rankId) {
