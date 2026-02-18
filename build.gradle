@@ -37,11 +37,9 @@ minecraft {
                 }
             }
         }
-
         client {
             workingDirectory project.file('run')
         }
-
         server {
             workingDirectory project.file('run')
         }
@@ -51,15 +49,19 @@ minecraft {
 repositories {
     mavenCentral()
     maven { url = 'https://maven.minecraftforge.net' }
-    flatDir {
-        dirs 'libs'
+    ivy {
+        setUrl('https://download.nodecdn.net/containers/reforged/universal/release')
+        metadataSources {
+            artifact()
+        }
+        patternLayout {
+            artifact('[artifact].[ext]')
+        }
     }
 }
-
 dependencies {
     minecraft 'net.minecraftforge:forge:1.16.5-36.2.42'
-    compileOnly files('libs/Pixelmon-1.16.5-9.1.13-universal.jar')
-    runtimeOnly files('libs/Pixelmon-1.16.5-9.1.13-universal.jar')
+    compileOnly fg.deobf('pixelmon:Pixelmon-1.16.5-9.1.13-universal:9.1.13')
 }
 
 jar {
