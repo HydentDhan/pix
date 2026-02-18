@@ -22,6 +22,14 @@ archivesBaseName = 'pixelmonraid'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(8)
 
+sourceSets {
+    main {
+        java {
+            srcDirs = ['Java']
+        }
+    }
+}
+
 minecraft {
     mappings channel: 'official', version: '1.16.5'
 
