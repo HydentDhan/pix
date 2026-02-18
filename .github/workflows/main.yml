@@ -1,10 +1,10 @@
-name: Build Forge Mod
+name: Build jar
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: main
   pull_request:
-    branches: [ "main", "master" ]
+    branches: main
   workflow_dispatch:
 
 jobs:
@@ -29,5 +29,6 @@ jobs:
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: PixelmonRaid-Build
+        name: ${{ github.ref_name }}
         path: build/libs/*.jar
+
