@@ -1,5 +1,7 @@
 package com.PixelmonRaid;
 
+import java.util.UUID;
+
 import com.pixelmonmod.pixelmon.api.pokemon.Pokemon;
 import com.pixelmonmod.pixelmon.api.storage.StorageProxy;
 import com.pixelmonmod.pixelmon.battles.BattleRegistry;
@@ -8,12 +10,11 @@ import com.pixelmonmod.pixelmon.battles.controller.participants.BattleParticipan
 import com.pixelmonmod.pixelmon.battles.controller.participants.PlayerParticipant;
 import com.pixelmonmod.pixelmon.battles.controller.participants.WildPixelmonParticipant;
 import com.pixelmonmod.pixelmon.entities.pixelmon.PixelmonEntity;
+
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.world.server.ServerWorld;
 import net.minecraft.util.text.StringTextComponent;
-
-import java.util.UUID;
+import net.minecraft.world.server.ServerWorld;
 
 public class RaidBattleStarter {
     public static boolean startBattleForPlayer(RaidSession session, ServerWorld world, ServerPlayerEntity player) {

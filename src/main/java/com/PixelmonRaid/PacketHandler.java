@@ -1,7 +1,8 @@
 package com.PixelmonRaid;
 
-import net.minecraft.entity.player.ServerPlayerEntity;
 import java.util.List;
+
+import net.minecraft.entity.player.ServerPlayerEntity;
 
 public final class PacketHandler {
     public static void registerPackets() {

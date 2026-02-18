@@ -1,46 +1,53 @@
 package com.PixelmonRaid;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.entity.item.ArmorStandEntity;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.ChatType;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.server.CustomServerBossInfo;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
-import net.minecraft.world.BossInfo;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.event.ClickEvent;
-import net.minecraft.util.text.event.HoverEvent;
-import net.minecraft.util.text.Color;
-
-import com.pixelmonmod.pixelmon.entities.pixelmon.PixelmonEntity;
+import com.pixelmonmod.pixelmon.api.battles.BattleType;
 import com.pixelmonmod.pixelmon.api.pokemon.Pokemon;
 import com.pixelmonmod.pixelmon.api.pokemon.PokemonFactory;
 import com.pixelmonmod.pixelmon.api.registries.PixelmonSpecies;
-import com.pixelmonmod.pixelmon.api.storage.StorageProxy;
 import com.pixelmonmod.pixelmon.api.storage.PlayerPartyStorage;
+import com.pixelmonmod.pixelmon.api.storage.StorageProxy;
 import com.pixelmonmod.pixelmon.battles.BattleRegistry;
+import com.pixelmonmod.pixelmon.battles.api.BattleBuilder;
+import com.pixelmonmod.pixelmon.battles.api.rules.BattleRuleRegistry;
+import com.pixelmonmod.pixelmon.battles.api.rules.BattleRules;
+import com.pixelmonmod.pixelmon.battles.attacks.Attack;
 import com.pixelmonmod.pixelmon.battles.controller.participants.PlayerParticipant;
 import com.pixelmonmod.pixelmon.battles.controller.participants.WildPixelmonParticipant;
+import com.pixelmonmod.pixelmon.entities.pixelmon.PixelmonEntity;
 import com.pixelmonmod.pixelmon.enums.EnumGrowth;
-import com.pixelmonmod.pixelmon.battles.attacks.Attack;
-import com.pixelmonmod.pixelmon.battles.api.BattleBuilder;
-import com.pixelmonmod.pixelmon.api.battles.BattleType;
-import com.pixelmonmod.pixelmon.battles.api.rules.BattleRules;
-import com.pixelmonmod.pixelmon.battles.api.rules.BattleRuleRegistry;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.item.ArmorStandEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.particles.ParticleTypes;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
+import net.minecraft.server.CustomServerBossInfo;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.SoundEvents;
+import net.minecraft.util.Util;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ChatType;
+import net.minecraft.util.text.Color;
+import net.minecraft.util.text.IFormattableTextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.event.ClickEvent;
+import net.minecraft.util.text.event.HoverEvent;
+import net.minecraft.world.BossInfo;
+import net.minecraft.world.server.ServerWorld;
 
 public class RaidSession {
     public enum State { IDLE, IN_BATTLE, SUDDEN_DEATH, COMPLETED, PAUSED }
@@ -73,7 +80,6 @@ public class RaidSession {
     private String currentBossName = "Charizard";
     private volatile boolean battleActive = false;
 
-    private int spawnFailureCount = 0;
     private long lastBroadcastTime = 0;
     private long lastHpBroadcastTick = -1;
 
@@ -144,7 +150,7 @@ public class RaidSession {
         }
         else if (s == State.IN_BATTLE) { this.battleStartTick = world.getGameTime(); }
         else if (s == State.SUDDEN_DEATH) { this.suddenDeathStartTick = world.getGameTime(); }
-        if (s == State.COMPLETED) { rewardsDistributed = false; hasEnraged = false; isSpawning = false; spawnFailureCount = 0; }
+        if (s == State.COMPLETED) { rewardsDistributed = false; hasEnraged = false; isSpawning = false; }
     }
 
     public BlockPos getCenter() { return RaidSaveData.get(world).getCenter(); }
@@ -555,8 +561,6 @@ public class RaidSession {
     public void startBattleNow() {
         if (isSpawning) return;
         isSpawning = true;
-        spawnFailureCount = 0;
-
         int diff = PixelmonRaidConfig.getInstance().getRaidDifficulty();
         int wins = RaidSaveData.get(world).getWinStreak();
         int configHP = PixelmonRaidConfig.getInstance().getBossHP(diff, wins);
@@ -642,7 +646,6 @@ public class RaidSession {
         setState(State.IDLE);
         isSpawning = false;
         setBattleActive(false);
-        spawnFailureCount = 0;
     }
 
     public void finishRaid(boolean victory, UUID killerId) {
@@ -797,6 +800,8 @@ public class RaidSession {
                 cleanup();
                 RaidSaveData.get(world).setNextRaidTick(tick + (20L * PixelmonRaidConfig.getInstance().getRaidIntervalSeconds()));
                 setState(State.IDLE);
+                break;
+            default:
                 break;
         }
     }

@@ -1,15 +1,15 @@
 package com.PixelmonRaid;
 
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.event.ServerChatEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraft.util.text.StringTextComponent;
-
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.ServerChatEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public final class TeleportConfirmationHandler {
     private static final Map<UUID, Pending> PENDING = new ConcurrentHashMap<>();
@@ -19,8 +19,7 @@ public final class TeleportConfirmationHandler {
 
     private static final class Pending {
         final BlockPos pos;
-        final long expiry;
-        Pending(BlockPos pos, long expiry) { this.pos = pos; this.expiry = expiry; }
+        Pending(BlockPos pos, long expiry) { this.pos = pos; }
     }
 
     public static void register() {

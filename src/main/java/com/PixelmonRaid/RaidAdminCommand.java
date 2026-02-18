@@ -1,12 +1,19 @@
 package com.PixelmonRaid;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
-import net.minecraft.command.arguments.EntityArgument;
 import net.minecraft.command.ISuggestionProvider;
+import net.minecraft.command.arguments.EntityArgument;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.inventory.container.ChestContainer;
 import net.minecraft.inventory.container.SimpleNamedContainerProvider;
@@ -15,16 +22,10 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.nbt.StringNBT;
-import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.List;
-import java.util.ArrayList;
 
 public class RaidAdminCommand {
 
@@ -529,7 +530,6 @@ public class RaidAdminCommand {
                     ResourceLocation res = new ResourceLocation(parts[0]);
                     net.minecraft.item.Item item = ForgeRegistries.ITEMS.getValue(res);
                     if (item != null) {
-                        int price = Integer.parseInt(parts[1]);
                         int count = parts.length > 2 ? Integer.parseInt(parts[2]) : 1;
                         ItemStack display = new ItemStack(item, count);
                         display.setHoverName(new StringTextComponent("§b" + item.getName(display).getString()));
