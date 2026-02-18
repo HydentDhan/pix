@@ -17,7 +17,7 @@ plugins {
 apply plugin: 'net.minecraftforge.gradle'
 
 group = 'com.pixel.pixelmonraid'
-version = '2.0'
+version = '2.0.0'
 archivesBaseName = 'pixelmonraid'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(8)
