@@ -1,10 +1,11 @@
-name: Build Forge Mod
+name: Build jar
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: main
   pull_request:
-    branches: [ "main", "master" ]
+    branches: main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,11 +23,17 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    - name: Get project version
+      id: get_version
+      run: |
+        VERSION=$(./gradlew properties -q | grep '^version:' | awk '{print $2}')
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
     - name: Build with Gradle
       run: ./gradlew build
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: PixelmonRaid-Build
+        name: PixelmonRaid-${{ steps.get_version.outputs.VERSION }}
         path: build/libs/*.jar
