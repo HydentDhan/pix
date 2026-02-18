@@ -61,7 +61,7 @@ repositories {
 }
 dependencies {
     minecraft 'net.minecraftforge:forge:1.16.5-36.2.42'
-    compileOnly fg.deobf('pixelmon:Pixelmon-1.16.5-9.1.13-universal:9.1.13')
+    compileOnly 'pixelmon:Pixelmon-1.16.5-9.1.13-universal:9.1.13'
 }
 
 jar {
