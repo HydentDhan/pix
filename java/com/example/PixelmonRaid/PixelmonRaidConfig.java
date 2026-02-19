@@ -15,7 +15,6 @@ public class PixelmonRaidConfig {
     private static final File backupFile = new File("config/pixelmonraid_backup.json");
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-
     public static final int CURRENT_CONFIG_VERSION = 6;
     private int configVersion = CURRENT_CONFIG_VERSION;
 
@@ -50,7 +49,6 @@ public class PixelmonRaidConfig {
     private int bossHpLevel4 = 95000;
     private int bossHpLevel5 = 120000;
     private double extraHpMultiplierPerWinAtMaxLevel = 0.10;
-
     private boolean bossBarSpacer = true;
 
     private boolean soundsEnabled = true;
@@ -89,7 +87,7 @@ public class PixelmonRaidConfig {
     private int tokensDropLevel3 = 3;
     private int tokensDropLevel4 = 5;
     private int tokensDropLevel5 = 10;
-    private List<String> raidShopItems = new ArrayList<>(Arrays.asList("pixelmon:rare_candy 1 1", "pixelmon:master_ball 50 1", "pixelmon:park_ball 20 1"));
+    private List<String> raidShopItems = new ArrayList<>(Arrays.asList("pixelmon:rare_candy 1 1 RARE", "pixelmon:poke_ball 50 1 BALLS {PokeBallID:\"master_ball\"}", "pixelmon:poke_ball 20 1 BALLS {PokeBallID:\"park_ball\"}"));
     private Map<String, List<String>> rankRewards = new LinkedHashMap<>();
     private Map<String, Integer> rankMoney = new LinkedHashMap<>();
 
@@ -172,7 +170,6 @@ public class PixelmonRaidConfig {
             this.raidDifficulty = data.raidDifficulty;
             this.silentMode = data.silentMode;
             if (data.bossScaleFactor > 0) this.bossScaleFactor = data.bossScaleFactor;
-
             this.autoRaidEnabled = data.autoRaidEnabled;
             if (data.bossHpLevel1 > 0) this.bossHpLevel1 = data.bossHpLevel1;
             if (data.bossHpLevel2 > 0) this.bossHpLevel2 = data.bossHpLevel2;
@@ -234,6 +231,7 @@ public class PixelmonRaidConfig {
 
             this.killShotRewards = data.killShotRewards;
             if (data.raidShopItems != null) this.raidShopItems = data.raidShopItems;
+
             if (data.moneyCommand != null) this.moneyCommand = data.moneyCommand;
             this.moneyParticipation = data.moneyParticipation;
             this.moneyKillshot = data.moneyKillshot;
@@ -263,7 +261,7 @@ public class PixelmonRaidConfig {
         addDefaultRank(3);
         rewardsParticipation = new ArrayList<>(); rewardsParticipation.add("pixelmon:potion 5");
         rewardsWinningParticipation = new ArrayList<>(); rewardsWinningParticipation.add("pixelmon:rare_candy 1");
-        killShotRewards = new ArrayList<>(); killShotRewards.add("pixelmon:master_ball 1");
+        killShotRewards = new ArrayList<>(); killShotRewards.add("pixelmon:poke_ball 1 {PokeBallID:\"master_ball\"}");
         moneyParticipation = 200; moneyKillshot = 5000;
     }
 
@@ -287,7 +285,6 @@ public class PixelmonRaidConfig {
 
     public boolean isAutoRaidEnabled() { return autoRaidEnabled; }
     public void setAutoRaidEnabled(boolean v) { this.autoRaidEnabled = v; save(); }
-
     public boolean isBossBarSpacerEnabled() { return bossBarSpacer; }
     public boolean isHologramEnabled() { return hologramEnabled; }
     public void setHologramEnabled(boolean v) { this.hologramEnabled = v; save(); }
@@ -298,7 +295,8 @@ public class PixelmonRaidConfig {
     public String getHoloWorld() { return holoWorld; }
 
     public void setHoloLocation(double x, double y, double z, String world) {
-        this.holoX = x; this.holoY = y; this.holoZ = z; this.holoWorld = world; save();
+        this.holoX = x;
+        this.holoY = y; this.holoZ = z; this.holoWorld = world; save();
     }
 
     public int getRankCount() { return rankRewards.size(); }
@@ -330,8 +328,8 @@ public class PixelmonRaidConfig {
 
     public boolean isDynamicDifficulty() { return dynamicDifficulty; }
     public double getDifficultyScale() { return difficultyScalePerPlayer; }
-
     public int getRejoinCooldownSeconds() { return rejoinCooldownSeconds; }
+
     public String getUiServerName() { return formatColor(uiServerName); }
     public String getUiThemeColor() { return formatColor(uiThemeColor); }
     public String getUiLogoItem() { return uiLogoItem; }
@@ -359,7 +357,6 @@ public class PixelmonRaidConfig {
 
     public void setRaidIntervalSeconds(int seconds) { this.raidIntervalSeconds = seconds; save(); }
     public int getRaidIntervalSeconds() { return raidIntervalSeconds; }
-
     public int getHpBroadcastIntervalSeconds() { return hpBroadcastIntervalSeconds; }
 
     public boolean incrementDifficultyOnWin() {
@@ -374,7 +371,6 @@ public class PixelmonRaidConfig {
     public void decrementDifficultyOnLoss() { if (this.raidDifficulty > 1) { this.raidDifficulty--; save(); } }
     public void setRaidDifficulty(int d) { this.raidDifficulty = d; save(); }
     public void setSilentMode(boolean silent) { this.silentMode = silent; save(); }
-
     public String getDiscordWebhookUrl() { return discordWebhookUrl; }
 
     public String getRandomBossSpecies(int difficulty) {
