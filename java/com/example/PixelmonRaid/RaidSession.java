@@ -52,7 +52,6 @@ public class RaidSession {
     private long battleStartTick;
     private long suddenDeathStartTick;
     private boolean isSpawning = false;
-
     private final Set<UUID> players = ConcurrentHashMap.newKeySet();
     private UUID templateUUID = null;
     private final Set<UUID> activeCopyUUIDs = ConcurrentHashMap.newKeySet();
@@ -62,7 +61,6 @@ public class RaidSession {
     private final Map<UUID, Integer> spawnDelays = new ConcurrentHashMap<>();
     private final Set<UUID> pendingBattles = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> rejoinCooldowns = new ConcurrentHashMap<>();
-
     private final List<UUID> hologramLines = new ArrayList<>();
 
     private boolean rewardsDistributed = false;
@@ -88,7 +86,6 @@ public class RaidSession {
     public RaidSession(ServerWorld world, BlockPos ignored) {
         this.world = world;
         this.raidId = UUID.randomUUID();
-
         int wins = 0;
         if (world != null) wins = RaidSaveData.get(world).getWinStreak();
         int configHP = PixelmonRaidConfig.getInstance().getBossHP(PixelmonRaidConfig.getInstance().getRaidDifficulty(), wins);
@@ -172,7 +169,9 @@ public class RaidSession {
 
     public void removePlayer(UUID playerId) { players.remove(playerId); }
 
-    public void setFatigue(UUID playerId, int seconds) { if (seconds <= 0) return; long expiry = System.currentTimeMillis() + (seconds * 1000L); fatigueMap.put(playerId, expiry); }
+    public void setFatigue(UUID playerId, int seconds) { if (seconds <= 0) return;
+        long expiry = System.currentTimeMillis() + (seconds * 1000L); fatigueMap.put(playerId, expiry);
+    }
     public boolean isFatigued(UUID playerId) { if (!fatigueMap.containsKey(playerId)) return false; if (System.currentTimeMillis() > fatigueMap.get(playerId)) { fatigueMap.remove(playerId); return false; } return true; }
 
     public void applyRejoinCooldown(UUID playerId) {
@@ -247,8 +246,6 @@ public class RaidSession {
             return;
         }
 
-        try { storage.retrieveAll("raid_start"); } catch (Throwable ignored) {}
-
         Pokemon activePokemon = null;
         for (Pokemon p : storage.getAll()) {
             if (p != null && !p.isEgg() && !p.isFainted()) {
@@ -299,7 +296,6 @@ public class RaidSession {
 
             cloned.setUUID(UUID.randomUUID());
             cloned.setLevel(100);
-            cloned.setHealth(this.maxRaidHP);
             try { cloned.getStats().setSpeed(99999); } catch (Throwable ignored) {}
 
             copy.setPokemon(cloned);
@@ -342,8 +338,8 @@ public class RaidSession {
                     .teamTwo(p2)
                     .rules(rules)
                     .noSelection()
-                    .removeFromTempParty()
                     .start();
+
             updateActionBars();
             updateBossBarImmediate();
             pendingBattles.remove(player.getUUID());
@@ -579,7 +575,6 @@ public class RaidSession {
             long durationTicks = 20L * PixelmonRaidConfig.getInstance().getRaidDurationForDifficulty(diff);
             long cooldownTicks = 20L * PixelmonRaidConfig.getInstance().getRaidIntervalSeconds();
             RaidSaveData.get(world).setNextRaidTick(world.getGameTime() + durationTicks + cooldownTicks);
-
             int durationMins = (int) (durationTicks / 20 / 60);
             String discordDesc = "**Boss:** " + currentBossName + "\n" +
                     "**Difficulty:** Level " + diff + "\n" +
