@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 public class RaidSaveData extends WorldSavedData {
     private static final String DATA_NAME = "pixelmonraid_data";
-
     public static final int CURRENT_DATA_VERSION = 2;
     private int dataVersion = CURRENT_DATA_VERSION;
 
@@ -60,31 +59,21 @@ public class RaidSaveData extends WorldSavedData {
     }
 
 
-    public long getNextRaidTick() { return nextRaidTick;
-    }
-    public void setNextRaidTick(long tick) { this.nextRaidTick = tick; setDirty();
-    }
+    public long getNextRaidTick() { return nextRaidTick; }
+    public void setNextRaidTick(long tick) { this.nextRaidTick = tick; setDirty(); }
 
     public int getWinStreak() { return winStreak; }
-    public void incrementWinStreak() { this.winStreak++; setDirty();
-    }
-    public void resetWinStreak() { this.winStreak = 0; setDirty();
-    }
+    public void incrementWinStreak() { this.winStreak++; setDirty(); }
+    public void resetWinStreak() { this.winStreak = 0; setDirty(); }
 
-    public BlockPos getCenter() { return center;
-    }
-    public void setCenter(BlockPos pos) { this.center = pos; setDirty();
-    }
+    public BlockPos getCenter() { return center; }
+    public void setCenter(BlockPos pos) { this.center = pos; setDirty(); }
 
-    public BlockPos getPlayerSpawn() { return playerSpawn;
-    }
-    public void setPlayerSpawn(BlockPos pos) { this.playerSpawn = pos; setDirty();
-    }
+    public BlockPos getPlayerSpawn() { return playerSpawn; }
+    public void setPlayerSpawn(BlockPos pos) { this.playerSpawn = pos; setDirty(); }
 
-    public int getTokens(UUID id) { return playerTokens.getOrDefault(id, 0);
-    }
-    public void addTokens(UUID id, int amount) { playerTokens.put(id, getTokens(id) + amount); setDirty();
-    }
+    public int getTokens(UUID id) { return playerTokens.getOrDefault(id, 0); }
+    public void addTokens(UUID id, int amount) { playerTokens.put(id, getTokens(id) + amount); setDirty(); }
 
     public boolean removeTokens(UUID id, int amount) {
         int current = getTokens(id);
@@ -109,7 +98,6 @@ public class RaidSaveData extends WorldSavedData {
                     else {
                         RaidPlayerStats cached = allTimeStats.get(e.getKey());
                         if(cached != null) name = cached.lastKnownName;
-
                     }
 
                     lastLeaderboard.add(name + ":" + e.getValue());
@@ -125,8 +113,7 @@ public class RaidSaveData extends WorldSavedData {
         }
     }
 
-    public List<String> getLastLeaderboard() { return new ArrayList<>(lastLeaderboard);
-    }
+    public List<String> getLastLeaderboard() { return new ArrayList<>(lastLeaderboard); }
 
     @Override
     public void load(CompoundNBT nbt) {
@@ -184,7 +171,6 @@ public class RaidSaveData extends WorldSavedData {
     @Override
     public CompoundNBT save(CompoundNBT nbt) {
         nbt.putInt("DataVersion", CURRENT_DATA_VERSION);
-
         nbt.putLong("NextRaidTick", nextRaidTick);
         nbt.putInt("WinStreak", winStreak);
         nbt.putInt("CenterX", center.getX());
@@ -193,7 +179,6 @@ public class RaidSaveData extends WorldSavedData {
         nbt.putInt("SpawnX", playerSpawn.getX());
         nbt.putInt("SpawnY", playerSpawn.getY());
         nbt.putInt("SpawnZ", playerSpawn.getZ());
-
         ListNBT tokenList = new ListNBT();
         playerTokens.forEach((k, v) -> {
             CompoundNBT t = new CompoundNBT();
@@ -216,7 +201,6 @@ public class RaidSaveData extends WorldSavedData {
             tag.putInt("Kills", v.kills);
             tag.putInt("Raids", v.raidsJoined);
             statsList.add(tag);
-
         });
         nbt.put("AllTimeStats", statsList);
 
