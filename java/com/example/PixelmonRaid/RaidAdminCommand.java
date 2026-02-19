@@ -189,7 +189,6 @@ public class RaidAdminCommand {
                                                     ServerPlayerEntity player = (ServerPlayerEntity) ctx.getSource().getEntity();
                                                     String cat = StringArgumentType.getString(ctx, "category").toUpperCase();
                                                     int price = IntegerArgumentType.getInteger(ctx, "price");
-
                                                     ItemStack held = player.getMainHandItem();
                                                     if (held.isEmpty()) {
                                                         ctx.getSource().sendFailure(new StringTextComponent("§cYou must hold an item to add it!"));
@@ -229,7 +228,6 @@ public class RaidAdminCommand {
 
         boolean autoEnabled = PixelmonRaidConfig.getInstance().isAutoRaidEnabled();
         boolean isBattleActive = (session != null) && (session.getState() == RaidSession.State.IN_BATTLE || session.getState() == RaidSession.State.SUDDEN_DEATH);
-
         player.openMenu(new SimpleNamedContainerProvider((id, playerInv, p) -> {
             ChestContainer container = ChestContainer.sixRows(id, playerInv);
             fillBorder(container, 6, getBorderItem());
@@ -334,7 +332,8 @@ public class RaidAdminCommand {
                             if (parts.length > 2) { try { CompoundNBT nbt = net.minecraft.nbt.JsonToNBT.parseTag(parts[2]);
                                 stack.setTag(nbt);
                             } catch (Exception e) {} }
-                            if (idx < REWARD_SLOTS.length) { chest.setItem(REWARD_SLOTS[idx], stack); idx++; }
+                            if (idx < REWARD_SLOTS.length) { chest.setItem(REWARD_SLOTS[idx], stack);
+                                idx++; }
                         }
                     } catch (Exception ignored) {}
                 }
@@ -362,7 +361,6 @@ public class RaidAdminCommand {
             chest.setItem(16, createGuiItem(Items.NETHER_STAR, "§b§l⭐ Special", "§7Unique Rewards", " ", "§e▶ Click to Browse"));
 
             chest.setItem(22, createGuiItem(Items.ARROW, "§c§l↩ RETURN", "§7Close Shop"));
-
             fillEmptySlots(chest, 27, Items.GRAY_STAINED_GLASS_PANE);
             return chest;
         }, new StringTextComponent(getColor() + "§lToken Shop")));
@@ -376,7 +374,6 @@ public class RaidAdminCommand {
             RaidAdminUIListener.shopQuantities.put(player.getUUID(), 1);
         }
         int qty = RaidAdminUIListener.shopQuantities.get(player.getUUID());
-
         player.openMenu(new SimpleNamedContainerProvider((id, playerInv, p) -> {
             ChestContainer chest = ChestContainer.fiveRows(id, playerInv);
             fillBorder(chest, 5, Items.GRAY_STAINED_GLASS_PANE);
@@ -396,20 +393,23 @@ public class RaidAdminCommand {
             int totalItems = baseCount * qty;
             int balance = RaidSaveData.get((ServerWorld) player.level).getTokens(player.getUUID());
             boolean canAfford = balance >= totalCost;
-
             ItemStack info = createGuiItem(Items.OAK_SIGN, "§e§lQuantity Selected", "§fCurrent: §b" + qty, " ", "§7Use the +/- buttons below", "§7to change amount.");
             chest.setItem(4, info);
 
             ItemStack product = new ItemStack(ForgeRegistries.ITEMS.getValue(res), Math.min(64, totalItems));
-            product.setHoverName(new StringTextComponent("§6§l" + totalItems + "x " + product.getItem().getName(product).getString()));
             CompoundNBT nbt = product.getOrCreateTag();
+
             if (parts.length > 4 || entry.contains("{")) {
                 try {
                     String nbtStr = entry.substring(entry.indexOf("{"));
                     CompoundNBT extra = net.minecraft.nbt.JsonToNBT.parseTag(nbtStr);
                     nbt.merge(extra);
+                    product.setTag(nbt);
                 } catch(Exception ignored){}
             }
+
+            product.setHoverName(new StringTextComponent("§6§l" + totalItems + "x " + product.getHoverName().getString()));
+
             CompoundNBT disp = nbt.contains("display") ? nbt.getCompound("display") : new CompoundNBT();
             ListNBT lore = new ListNBT();
             lore.add(StringNBT.valueOf("{\"text\":\"§7Total Cost: §e" + totalCost + " Tokens\"}"));
@@ -422,13 +422,11 @@ public class RaidAdminCommand {
             chest.setItem(13, product);
 
             chest.setItem(10, createGuiItem(Items.RED_STAINED_GLASS_PANE, "§c-64", "§7Decrease"));
-            chest.setItem(11, createGuiItem(Items.RED_STAINED_GLASS_PANE, "§c-10", "§7Decrease"));
-            chest.setItem(12, createGuiItem(Items.RED_STAINED_GLASS_PANE, "§c-1", "§7Decrease"));
-
+            chest.setItem(11, createGuiItem(Items.ORANGE_STAINED_GLASS_PANE, "§c-10", "§7Decrease"));
+            chest.setItem(12, createGuiItem(Items.YELLOW_STAINED_GLASS_PANE, "§c-1", "§7Decrease"));
             chest.setItem(14, createGuiItem(Items.LIME_STAINED_GLASS_PANE, "§a+1", "§7Increase"));
-            chest.setItem(15, createGuiItem(Items.LIME_STAINED_GLASS_PANE, "§a+10", "§7Increase"));
-            chest.setItem(16, createGuiItem(Items.LIME_STAINED_GLASS_PANE, "§a+64", "§7Increase"));
-
+            chest.setItem(15, createGuiItem(Items.GREEN_STAINED_GLASS_PANE, "§a+10", "§7Increase"));
+            chest.setItem(16, createGuiItem(Items.EMERALD_BLOCK, "§a+64", "§7Increase"));
             chest.setItem(22, createGuiItem(Items.GOLD_BLOCK, "§6§lMAX", "§7Buy max affordable", "§7(Up to 64)"));
 
             if (canAfford) {
@@ -437,7 +435,6 @@ public class RaidAdminCommand {
                 chest.setItem(31, createGuiItem(Items.RED_TERRACOTTA, "§c§l✖ CANNOT AFFORD", "§7You need " + (totalCost - balance) + " more tokens."));
             }
             chest.setItem(40, createGuiItem(Items.ARROW, "§c§l↩ CANCEL", "§7Return to Shop"));
-
             fillEmptySlots(chest, 45, Items.BLACK_STAINED_GLASS_PANE);
             return chest;
         }, new StringTextComponent("§8§lConfirm Purchase")));
@@ -476,15 +473,18 @@ public class RaidAdminCommand {
                             int countBase = parts.length > 2 ? Integer.parseInt(parts[2]) : 1;
 
                             ItemStack display = new ItemStack(item, countBase);
-                            display.setHoverName(new StringTextComponent("§b" + item.getName(display).getString()));
                             CompoundNBT nbt = display.getOrCreateTag();
+
                             if (parts.length > 4 || entry.contains("{")) {
                                 try {
                                     String nbtStr = entry.substring(entry.indexOf("{"));
                                     CompoundNBT extra = net.minecraft.nbt.JsonToNBT.parseTag(nbtStr);
                                     nbt.merge(extra);
+                                    display.setTag(nbt);
                                 } catch(Exception ignored){}
                             }
+
+                            display.setHoverName(new StringTextComponent("§b" + display.getHoverName().getString()));
 
                             CompoundNBT d = nbt.contains("display") ? nbt.getCompound("display") : new CompoundNBT();
                             ListNBT l = new ListNBT();
@@ -506,7 +506,6 @@ public class RaidAdminCommand {
                 } catch (Exception ignored) {}
             }
             chest.setItem(49, createGuiItem(Items.ARROW, "§c§l↩ RETURN", "§7Back to Categories"));
-
             fillEmptySlots(chest, 54, Items.GRAY_STAINED_GLASS_PANE);
             return chest;
         }, new StringTextComponent("§8§lShop: " + category)));
@@ -531,9 +530,19 @@ public class RaidAdminCommand {
                     if (item != null) {
                         int price = Integer.parseInt(parts[1]);
                         int count = parts.length > 2 ? Integer.parseInt(parts[2]) : 1;
+
                         ItemStack display = new ItemStack(item, count);
-                        display.setHoverName(new StringTextComponent("§b" + item.getName(display).getString()));
                         CompoundNBT nbt = display.getOrCreateTag();
+
+                        if (entry.contains("{")) {
+                            try {
+                                String nbtStr = entry.substring(entry.indexOf("{"));
+                                nbt.merge(net.minecraft.nbt.JsonToNBT.parseTag(nbtStr));
+                                display.setTag(nbt);
+                            } catch(Exception ignored){}
+                        }
+
+                        display.setHoverName(new StringTextComponent("§b" + display.getHoverName().getString()));
                         nbt.putInt("ShopIndex", items.indexOf(entry));
                         nbt.putBoolean("RaidGuiItem", true);
                         display.setTag(nbt);
@@ -543,7 +552,6 @@ public class RaidAdminCommand {
                 } catch(Exception ignored) {}
             }
             chest.setItem(49, createGuiItem(Items.ARROW, "§c§l↩ RETURN", "§7Back to Dashboard"));
-
             fillEmptySlots(chest, 54, Items.GRAY_STAINED_GLASS_PANE);
             return chest;
         }, new StringTextComponent("§8§lShop Editor")));
@@ -564,9 +572,19 @@ public class RaidAdminCommand {
                 ResourceLocation res = new ResourceLocation(parts[0]);
                 int price = Integer.parseInt(parts[1]);
                 int count = parts.length > 2 ? Integer.parseInt(parts[2]) : 1;
+
                 ItemStack display = new ItemStack(ForgeRegistries.ITEMS.getValue(res), count);
-                display.setHoverName(new StringTextComponent("§6§lCurrent Settings"));
                 CompoundNBT nbt = display.getOrCreateTag();
+                
+                if (entry.contains("{")) {
+                    try {
+                        String nbtStr = entry.substring(entry.indexOf("{"));
+                        nbt.merge(net.minecraft.nbt.JsonToNBT.parseTag(nbtStr));
+                        display.setTag(nbt);
+                    } catch(Exception ignored){}
+                }
+
+                display.setHoverName(new StringTextComponent("§6§lCurrent Settings"));
                 CompoundNBT d = new CompoundNBT();
                 ListNBT l = new ListNBT();
                 l.add(StringNBT.valueOf("{\"text\":\"§7Price: §e" + price + "\"}"));
@@ -578,14 +596,14 @@ public class RaidAdminCommand {
                 chest.setItem(13, display);
 
                 chest.setItem(10, createGuiItem(Items.RED_DYE, "§cPrice: -100", "§7Decrease cost"));
-                chest.setItem(11, createGuiItem(Items.PINK_DYE, "§cPrice: -10", "§7Decrease cost"));
-                chest.setItem(15, createGuiItem(Items.LIME_DYE, "§aPrice: +10", "§7Increase cost"));
-                chest.setItem(16, createGuiItem(Items.GREEN_DYE, "§aPrice: +100", "§7Increase cost"));
-
+                chest.setItem(11, createGuiItem(Items.ORANGE_DYE, "§cPrice: -10", "§7Decrease cost"));
+                chest.setItem(12, createGuiItem(Items.PINK_DYE, "§cPrice: -1", "§7Decrease cost"));
+                chest.setItem(14, createGuiItem(Items.LIME_DYE, "§aPrice: +1", "§7Increase cost"));
+                chest.setItem(15, createGuiItem(Items.GREEN_DYE, "§aPrice: +10", "§7Increase cost"));
+                chest.setItem(16, createGuiItem(Items.EMERALD, "§aPrice: +100", "§7Increase cost"));
                 chest.setItem(26, createGuiItem(Items.BARRIER, "§4§lDELETE ITEM", "§7Remove from Shop", "§c⚠ Cannot be undone"));
             }
             chest.setItem(22, createGuiItem(Items.ARROW, "§c§l↩ BACK", "§7Back to Shop Editor"));
-
             fillEmptySlots(chest, 27, Items.GRAY_STAINED_GLASS_PANE);
             return chest;
         }, new StringTextComponent("§8§lEdit Item")));
