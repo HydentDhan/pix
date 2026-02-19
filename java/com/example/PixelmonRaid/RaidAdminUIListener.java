@@ -19,6 +19,8 @@ import net.minecraft.inventory.container.Slot;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.JsonToNBT;
 import net.minecraft.network.play.server.SSetSlotPacket;
+import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.StringNBT;
 
 import java.util.UUID;
 import java.util.List;
@@ -63,14 +65,12 @@ public class RaidAdminUIListener {
 
         boolean isMenuOpen = RaidAdminCommand.playerMenuState.containsKey(player.getUUID());
         String state = isMenuOpen ? RaidAdminCommand.playerMenuState.get(player.getUUID()) : null;
-
         boolean dirty = false;
         boolean handledClick = false;
 
         ItemStack cursorStack = player.inventory.getCarried();
         if (!cursorStack.isEmpty() && isGuiItem(cursorStack)) {
             String rawName = cursorStack.getHoverName().getString();
-
             player.inventory.setCarried(ItemStack.EMPTY);
             player.connection.send(new SSetSlotPacket(-1, -1, ItemStack.EMPTY));
             dirty = true;
@@ -143,7 +143,6 @@ public class RaidAdminUIListener {
 
         ServerWorld world = (ServerWorld) player.level;
         RaidSession session = RaidSpawner.getSessionSafe(world);
-
         if (lowName.contains("return") || lowName.contains("back") || lowName.contains("cancel") || lowName.contains("exit") || lowName.contains("close")) {
             player.playSound(SoundEvents.UI_BUTTON_CLICK, 1.0f, 1.0f);
             if (state.matches("\\d+") || state.equals("killshot") || state.equals("participation")) {
@@ -213,7 +212,22 @@ public class RaidAdminUIListener {
             if(newState) player.sendMessage(new StringTextComponent("§a[Raid] Auto-Spawn Enabled!"), Util.NIL_UUID);
             else player.sendMessage(new StringTextComponent("§c[Raid] Auto-Spawn Paused."), Util.NIL_UUID);
 
-            switchMenu(player, "HUB", () -> RaidAdminCommand.openHub(player));
+            if (player.containerMenu != null && state.equals("HUB")) {
+                ItemStack toggleItem = player.containerMenu.getSlot(37).getItem();
+                toggleItem.setHoverName(new StringTextComponent(newState ? "§a§l✔ AUTO-RAIDS: ON" : "§c§l✖ AUTO-RAIDS: OFF"));
+                CompoundNBT nbt = toggleItem.getOrCreateTag();
+                if (newState) nbt.putBoolean("EnchantmentGlint", true);
+                else nbt.remove("EnchantmentGlint");
+                CompoundNBT d = nbt.contains("display") ? nbt.getCompound("display") : new CompoundNBT();
+                ListNBT l = new ListNBT();
+                l.add(StringNBT.valueOf("{\"text\":\"§7Control whether raids spawn automatically.\"}"));
+                l.add(StringNBT.valueOf("{\"text\":\" \"}"));
+                l.add(StringNBT.valueOf("{\"text\":\"" + (newState ? "§e▶ Click to PAUSE Raids" : "§e▶ Click to RESUME Raids") + "\"}"));
+                d.put("Lore", l);
+                nbt.put("display", d);
+                toggleItem.setTag(nbt);
+                player.containerMenu.broadcastChanges();
+            }
             return true;
         }
 
@@ -230,8 +244,10 @@ public class RaidAdminUIListener {
 
                 if (cleanName.contains("+100")) { price += 100; changed = true; }
                 else if (cleanName.contains("+10")) { price += 10; changed = true; }
+                else if (cleanName.contains("+1")) { price += 1; changed = true; }
                 else if (cleanName.contains("-100")) { price = Math.max(1, price - 100); changed = true; }
                 else if (cleanName.contains("-10")) { price = Math.max(1, price - 10); changed = true; }
+                else if (cleanName.contains("-1")) { price = Math.max(1, price - 1); changed = true; }
                 else if (cleanName.contains("DELETE ITEM")) {
                     items.remove(idx);
                     PixelmonRaidConfig.getInstance().setRaidShopItems(items);
@@ -248,7 +264,19 @@ public class RaidAdminUIListener {
                     items.set(idx, newEntry.toString());
                     PixelmonRaidConfig.getInstance().setRaidShopItems(items);
                     player.playSound(SoundEvents.NOTE_BLOCK_PLING, 1.0f, 2.0f);
-                    switchMenu(player, "PRICE_EDITOR", () -> RaidAdminCommand.openItemPriceEditor(player, idx));
+
+                    if (player.containerMenu != null) {
+                        ItemStack display = player.containerMenu.getSlot(13).getItem();
+                        CompoundNBT nbt = display.getOrCreateTag();
+                        CompoundNBT d = nbt.contains("display") ? nbt.getCompound("display") : new CompoundNBT();
+                        ListNBT l = new ListNBT();
+                        l.add(StringNBT.valueOf("{\"text\":\"§7Price: §e" + price + "\"}"));
+                        l.add(StringNBT.valueOf("{\"text\":\"§7Stock: §f" + stock + "\"}"));
+                        d.put("Lore", l);
+                        nbt.put("display", d);
+                        display.setTag(nbt);
+                        player.containerMenu.broadcastChanges();
+                    }
                     return true;
                 }
             } else {
@@ -261,7 +289,22 @@ public class RaidAdminUIListener {
             int next = PixelmonRaidConfig.getInstance().getRaidDifficulty() + 1;
             if (next > 5) next = 1;
             PixelmonRaidConfig.getInstance().setRaidDifficulty(next);
-            switchMenu(player, "HUB", () -> RaidAdminCommand.openHub(player));
+
+            if (player.containerMenu != null && state.equals("HUB")) {
+                player.playSound(SoundEvents.NOTE_BLOCK_PLING, 1.0f, 1.5f);
+                ItemStack diffItem = player.containerMenu.getSlot(25).getItem();
+                diffItem.setHoverName(new StringTextComponent(PixelmonRaidConfig.getInstance().getUiThemeColor().replace("&", "§") + "§l★ Difficulty: " + next));
+                CompoundNBT nbt = diffItem.getOrCreateTag();
+                CompoundNBT d = nbt.contains("display") ? nbt.getCompound("display") : new CompoundNBT();
+                ListNBT l = new ListNBT();
+                l.add(StringNBT.valueOf("{\"text\":\"§7Current Level: §f" + next + "/5\"}"));
+                l.add(StringNBT.valueOf("{\"text\":\" \"}"));
+                l.add(StringNBT.valueOf("{\"text\":\"§e▶ Click to Cycle\"}"));
+                d.put("Lore", l);
+                nbt.put("display", d);
+                diffItem.setTag(nbt);
+                player.containerMenu.broadcastChanges();
+            }
             return true;
         }
 
@@ -274,14 +317,20 @@ public class RaidAdminUIListener {
             }
         }
 
-        if (lowName.contains("shop editor") || lowName.contains("edit shop")) { switchMenu(player, "SHOP_EDITOR", () -> RaidAdminCommand.openShopEditor(player)); return true; }
-        if (lowName.contains("loot tables") || lowName.contains("rewards")) { switchMenu(player, "REWARDS_HUB", () -> RaidAdminCommand.openRewardsHub(player)); return true; }
+        if (lowName.contains("shop editor") || lowName.contains("edit shop")) { switchMenu(player, "SHOP_EDITOR", () -> RaidAdminCommand.openShopEditor(player));
+            return true; }
+        if (lowName.contains("loot tables") || lowName.contains("rewards")) { switchMenu(player, "REWARDS_HUB", () -> RaidAdminCommand.openRewardsHub(player));
+            return true; }
 
         if (state.equals("TOKEN_SHOP")) {
-            if (lowName.contains("pokéballs") || lowName.contains("pokeballs")) { switchMenu(player, "SHOP_BALLS", () -> RaidAdminCommand.openShopCategory(player, "BALLS")); return true; }
-            if (lowName.contains("rare items")) { switchMenu(player, "SHOP_RARE", () -> RaidAdminCommand.openShopCategory(player, "RARE")); return true; }
-            if (lowName.contains("keys")) { switchMenu(player, "SHOP_KEYS", () -> RaidAdminCommand.openShopCategory(player, "KEYS")); return true; }
-            if (lowName.contains("special")) { switchMenu(player, "SHOP_SPECIAL", () -> RaidAdminCommand.openShopCategory(player, "SPECIAL")); return true; }
+            if (lowName.contains("pokéballs") || lowName.contains("pokeballs")) { switchMenu(player, "SHOP_BALLS", () -> RaidAdminCommand.openShopCategory(player, "BALLS"));
+                return true; }
+            if (lowName.contains("rare items")) { switchMenu(player, "SHOP_RARE", () -> RaidAdminCommand.openShopCategory(player, "RARE"));
+                return true; }
+            if (lowName.contains("keys")) { switchMenu(player, "SHOP_KEYS", () -> RaidAdminCommand.openShopCategory(player, "KEYS"));
+                return true; }
+            if (lowName.contains("special")) { switchMenu(player, "SHOP_SPECIAL", () -> RaidAdminCommand.openShopCategory(player, "SPECIAL"));
+                return true; }
         }
 
         if (state.equals("PURCHASE_UI")) {
@@ -315,7 +364,64 @@ public class RaidAdminUIListener {
                 if (update) {
                     shopQuantities.put(player.getUUID(), currentQty);
                     player.playSound(SoundEvents.NOTE_BLOCK_PLING, 1.0f, 1.5f);
-                    switchMenu(player, "PURCHASE_UI", () -> RaidAdminCommand.openPurchasePanel(player, idx));
+
+                    if (player.containerMenu != null) {
+                        ItemStack info = player.containerMenu.getSlot(4).getItem();
+                        CompoundNBT infoNbt = info.getOrCreateTag();
+                        CompoundNBT infoDisp = infoNbt.contains("display") ? infoNbt.getCompound("display") : new CompoundNBT();
+                        ListNBT infoLore = new ListNBT();
+                        infoLore.add(StringNBT.valueOf("{\"text\":\"§fCurrent: §b" + currentQty + "\"}"));
+                        infoLore.add(StringNBT.valueOf("{\"text\":\" \"}"));
+                        infoLore.add(StringNBT.valueOf("{\"text\":\"§7Use the +/- buttons below\"}"));
+                        infoLore.add(StringNBT.valueOf("{\"text\":\"§7to change amount.\"}"));
+                        infoDisp.put("Lore", infoLore);
+                        infoNbt.put("display", infoDisp);
+                        info.setTag(infoNbt);
+
+                        List<String> itemsList = PixelmonRaidConfig.getInstance().getRaidShopItems();
+                        if (idx < itemsList.size()) {
+                            String entryStr = itemsList.get(idx);
+                            String[] eParts = entryStr.split(" ");
+                            int costPerUnit = Integer.parseInt(eParts[1]);
+                            int baseCount = eParts.length > 2 ? Integer.parseInt(eParts[2]) : 1;
+                            int totalCost = costPerUnit * currentQty;
+                            int totalItems = baseCount * currentQty;
+                            int balance = RaidSaveData.get(world).getTokens(player.getUUID());
+                            boolean canAfford = balance >= totalCost;
+
+                            ItemStack product = player.containerMenu.getSlot(13).getItem();
+                            product.setCount(Math.min(64, totalItems));
+                            product.setHoverName(new StringTextComponent("§6§l" + totalItems + "x " + product.getItem().getName(product).getString()));
+                            CompoundNBT pNbt = product.getOrCreateTag();
+                            CompoundNBT pDisp = pNbt.contains("display") ? pNbt.getCompound("display") : new CompoundNBT();
+                            ListNBT pLore = new ListNBT();
+                            pLore.add(StringNBT.valueOf("{\"text\":\"§7Total Cost: §e" + totalCost + " Tokens\"}"));
+                            pLore.add(StringNBT.valueOf("{\"text\":\" \"}"));
+                            pLore.add(StringNBT.valueOf("{\"text\":\"" + (canAfford ? "§a✔ You can afford this" : "§c✖ Insufficient Tokens") + "\"}"));
+                            pDisp.put("Lore", pLore);
+                            pNbt.put("display", pDisp);
+                            product.setTag(pNbt);
+
+                            ItemStack confirmBtn = new ItemStack(canAfford ? Items.LIME_TERRACOTTA : Items.RED_TERRACOTTA);
+                            confirmBtn.setHoverName(new StringTextComponent(canAfford ? "§a§l✔ CONFIRM PURCHASE" : "§c§l✖ CANNOT AFFORD"));
+                            CompoundNBT cNbt = confirmBtn.getOrCreateTag();
+                            cNbt.putBoolean("RaidGuiItem", true);
+                            CompoundNBT cDisp = new CompoundNBT();
+                            ListNBT cLore = new ListNBT();
+                            if (canAfford) {
+                                cLore.add(StringNBT.valueOf("{\"text\":\"§7Cost: §e" + totalCost + " Tokens\"}"));
+                                cLore.add(StringNBT.valueOf("{\"text\":\" \"}"));
+                                cLore.add(StringNBT.valueOf("{\"text\":\"§e▶ Click to Buy\"}"));
+                            } else {
+                                cLore.add(StringNBT.valueOf("{\"text\":\"§7You need " + (totalCost - balance) + " more tokens.\"}"));
+                            }
+                            cDisp.put("Lore", cLore);
+                            cNbt.put("display", cDisp);
+                            confirmBtn.setTag(cNbt);
+                            player.containerMenu.setItem(31, confirmBtn);
+                        }
+                        player.containerMenu.broadcastChanges();
+                    }
                     return true;
                 }
 
@@ -335,7 +441,8 @@ public class RaidAdminUIListener {
                             ItemStack give = new ItemStack(ForgeRegistries.ITEMS.getValue(res), totalItems);
                             try { if (parts.length > 4 || entry.contains("{")) { String nbtStr = entry.substring(entry.indexOf("{")); CompoundNBT nbt = JsonToNBT.parseTag(nbtStr); give.setTag(nbt);
                             } } catch(Exception ignored){}
-                            if (!player.inventory.add(give)) { player.drop(give, false); }
+                            if (!player.inventory.add(give)) { player.drop(give, false);
+                            }
                             player.playSound(SoundEvents.PLAYER_LEVELUP, 1.0f, 1.0f);
                             player.sendMessage(new StringTextComponent("§aSuccessful Purchase!"), Util.NIL_UUID);
                             switchMenu(player, "TOKEN_SHOP", () -> RaidAdminCommand.openTokenShop(player));
