@@ -10,6 +10,20 @@ public class DamageTracker {
 
     public void addDamage(UUID player, int damage) {
         damageMap.put(player, damageMap.getOrDefault(player, 0) + damage);
+
+        try {
+            if (net.minecraftforge.fml.ModList.get().isLoaded("pixelmonbattlepass")) {
+                net.minecraft.server.MinecraftServer server = net.minecraftforge.fml.server.ServerLifecycleHooks.getCurrentServer();
+                if (server != null) {
+                    net.minecraft.entity.player.ServerPlayerEntity playerEntity = server.getPlayerList().getPlayer(player);
+                    if (playerEntity != null) {Class<?> bpQuestsClass = Class.forName("com.pixel.pixelmonbattlepass.BattlepassQuests");
+                        java.lang.reflect.Method addDmgMethod = bpQuestsClass.getMethod("addRaidDamageProgress", net.minecraft.entity.player.ServerPlayerEntity.class, int.class);
+                        addDmgMethod.invoke(null, playerEntity, damage);
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     public int getDamage(UUID player) {
