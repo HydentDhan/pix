@@ -1,0 +1,21 @@
+plugins {
+    id 'net.neoforged.moddev' version '2.0.80'
+}
+
+platformVersion = "1.21.1"
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+platform = "NeoForge"
+
+neoForge {
+    version = "21.1.162"
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {}
+
+dependencies {
+    var pixelmonVersion = "9.3.14"
+    implementation "pixelmon:Pixelmon-1.21.1-${pixelmonVersion}-universal:${pixelmonVersion}"
+    interfaceInjectionData("pixelmon:Pixelmon-1.21.1-${pixelmonVersion}-universal-interfaceinjection:${pixelmonVersion}@json")
+}

@@ -1,91 +1,34 @@
-buildscript {
+subprojects {
+    apply plugin: 'idea'
+    apply plugin: 'java'
+    apply plugin: 'maven-publish'
+
+    group = 'com.pixel.pixelmonraid'
+    version = '3.0.0'
+
+    ext {
+        platformVersion = "none"
+        platform = "none"
+    }
+
     repositories {
-        maven { url = 'https://maven.minecraftforge.net' }
         mavenCentral()
-    }
-    dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:4.1.6'
-    }
-}
+        ivy {
+            setUrl('https://download.nodecdn.net/containers/reforged/universal/release')
 
-plugins {
-    id 'eclipse'
-    id 'idea'
-    id 'maven-publish'
-}
-
-apply plugin: 'net.minecraftforge.gradle'
-
-group = 'com.pixel.pixelmonraid'
-version = '2.0.0'
-archivesBaseName = 'pixelmonraid'
-
-java.toolchain.languageVersion = JavaLanguageVersion.of(8)
-
-sourceSets {
-    main {
-        java {
-            srcDirs = ['Java']
-        }
-    }
-}
-
-minecraft {
-    mappings channel: 'official', version: '1.16.5'
-
-    runs {
-        configureEach {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-
-            mods {
-                pixelmonraid {
-                    source sourceSets.main
-                }
+            metadataSources {
+                artifact()
+                gradleMetadata()
+            }
+            patternLayout {
+                artifact('[artifact].[ext]')
             }
         }
-        client {
-            workingDirectory project.file('run')
-        }
-        server {
-            workingDirectory project.file('run')
+    }
+
+    afterEvaluate {
+        jar {
+            setArchiveBaseName("${rootProject.name}-${platform}-${platformVersion}")
         }
     }
-}
-
-repositories {
-    mavenCentral()
-    maven { url = 'https://maven.minecraftforge.net' }
-    ivy {
-        setUrl('https://download.nodecdn.net/containers/reforged/universal/release')
-        metadataSources {
-            artifact()
-        }
-        patternLayout {
-            artifact('[artifact].[ext]')
-        }
-    }
-}
-dependencies {
-    minecraft 'net.minecraftforge:forge:1.16.5-36.2.42'
-    compileOnly 'pixelmon:Pixelmon-1.16.5-9.1.13-universal:9.1.13'
-}
-
-jar {
-    manifest {
-        attributes(
-                'Specification-Title':      archivesBaseName,
-                'Implementation-Version':   version,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        )
-    }
-}
-
-tasks.named('jar').configure {
-    finalizedBy 'reobfJar'
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
 }
