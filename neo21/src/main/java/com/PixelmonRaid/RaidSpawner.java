@@ -15,7 +15,7 @@ import com.pixelmonmod.pixelmon.api.pokemon.PokemonBuilder;
 import com.pixelmonmod.pixelmon.api.pokemon.species.Species;
 import com.pixelmonmod.pixelmon.api.pokemon.stats.BattleStatsType;
 import com.pixelmonmod.pixelmon.api.registries.PixelmonSpecies;
-import com.pixelmonmod.pixelmon.entities.pixelmon.StatueEntity;
+import com.pixelmonmod.pixelmon.entities.pixelmon.PixelmonEntity;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -29,6 +29,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -148,10 +149,10 @@ public class RaidSpawner {
                }
 
                session.clearBossEntities();
-               List<StatueEntity> oldStatues = world.getEntitiesOfClass(StatueEntity.class, (new AABB(pos)).inflate(2.0D));
-               for (StatueEntity old : oldStatues) {
+               List<PixelmonEntity> oldEntities = world.getEntitiesOfClass(PixelmonEntity.class, (new AABB(pos)).inflate(100.0D));
+               for (PixelmonEntity old : oldEntities) {
                   try {
-                     if (old.getPersistentData().getBoolean("pixelmonraid_template")) {
+                     if (old.getPersistentData().getBoolean("pixelmonraid_template") || old.getPersistentData().getBoolean("pixelmonraid_boss") || old.getPersistentData().getBoolean("pixelmonraid_copy")) {
                         old.remove(Entity.RemovalReason.DISCARDED);
                      }
                   } catch (Throwable var21) {}
@@ -179,18 +180,26 @@ public class RaidSpawner {
                   }
                } catch (Throwable var22) {}
 
-               EntityType<?> et = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.fromNamespaceAndPath("pixelmon", "statue"));
+               EntityType<?> et = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.fromNamespaceAndPath("pixelmon", "pixelmon"));
                if (et == null) {
                   return false;
                } else {
-                  StatueEntity statue = (StatueEntity)et.create(world);
+                  PixelmonEntity statue = (PixelmonEntity)et.create(world);
                   if (statue == null) {
                      return false;
                   } else {
                      statue.setPokemon(pokemon);
                      float scale = (float)PixelmonRaidConfig.getInstance().getBossScaleFactor();
 
-                     try { statue.setPixelmonScale(scale); } catch (Throwable var17) {}
+                     try {
+                        statue.setPixelmonScale(scale);
+                     } catch (Throwable var17) {}
+                     try {
+                        statue.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.0D);
+                        statue.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1.0D);
+                     } catch (Throwable var18) {}
+                     statue.setInvulnerable(true);
+                     statue.setPersistenceRequired();
 
                      statue.getPersistentData().putBoolean("pixelmonraid_boss", true);
                      statue.getPersistentData().putBoolean("pixelmonraid_template", true);

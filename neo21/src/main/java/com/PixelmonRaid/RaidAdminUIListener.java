@@ -127,6 +127,7 @@ public class RaidAdminUIListener {
                }
 
                if (backgroundTampered) {
+                  player.playSound(SoundEvents.ITEM_BREAK, 1.0F, 1.0F);
                   requiresRedraw = true;
                }
             }

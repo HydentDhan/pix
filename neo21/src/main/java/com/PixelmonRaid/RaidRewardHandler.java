@@ -36,24 +36,24 @@ public class RaidRewardHandler {
                int previousDamage = Integer.MIN_VALUE;
                int assignedRankForPrev = 0;
 
-               int tokenChance;
+               int currentRank;
                for(int i = 0; i < sorted.size(); ++i) {
                   Entry<UUID, Integer> e = sorted.get(i);
                   int dmg = e.getValue();
                   if (dmg == previousDamage) {
-                     tokenChance = assignedRankForPrev;
+                     currentRank = assignedRankForPrev;
                   } else {
-                     tokenChance = i + 1;
-                     assignedRankForPrev = tokenChance;
+                     currentRank = i + 1;
+                     assignedRankForPrev = currentRank;
                      previousDamage = dmg;
                   }
-                  rankMap.put(e.getKey(), tokenChance);
+                  rankMap.put(e.getKey(), currentRank);
                }
 
                PixelmonRaidConfig cfg = PixelmonRaidConfig.getInstance();
                int difficulty = cfg.getRaidDifficulty();
                PixelmonRaidConfig.TierRewardConfig tier = cfg.getTierRewards(difficulty);
-               tokenChance = tier.tokenDropChance;
+               int dropChance = tier.tokenDropChance;
                int maxRanks = tier.getRankCount();
                Random rng = new Random();
 
@@ -112,24 +112,26 @@ public class RaidRewardHandler {
                         } catch (Exception var26) {}
                      }
 
-                     if (rng.nextInt(100) < tokenChance) {
+                     if (dropChance >= 100 || rng.nextInt(100) < dropChance) {
                         int amount = tier.minTokens;
                         if (tier.maxTokens > tier.minTokens) {
                            amount += rng.nextInt(tier.maxTokens - tier.minTokens + 1);
                         }
 
-                        RaidSaveData.get(session.getWorld()).addTokens(pid, amount);
-                        player.sendSystemMessage(Component.literal("§6§l⛃ FOUND TOKENS! §eYou got " + amount + " Raid Tokens!"));
-                        try {
-                           if (ModList.get().isLoaded("pixelmonbattlepass")) {
-                              Class<?> bpQuestsClass = Class.forName("com.pixel.pixelmonbattlepass.BattlepassQuests");
-                              Method addTokenMethod = bpQuestsClass.getMethod("addRaidTokenProgress", ServerPlayer.class, Integer.TYPE);
-                              addTokenMethod.invoke((Object)null, player, amount);
-                           }
-                        } catch (Exception var25) {}
+                        if (amount > 0) {
+                           RaidSaveData.get(session.getWorld()).addTokens(pid, amount);
+                           player.sendSystemMessage(Component.literal("§6§l⛃ FOUND TOKENS! §eYou got " + amount + " Raid Tokens!"));
+                           try {
+                              if (ModList.get().isLoaded("pixelmonbattlepass")) {
+                                 Class<?> bpQuestsClass = Class.forName("com.pixel.pixelmonbattlepass.BattlepassQuests");
+                                 Method addTokenMethod = bpQuestsClass.getMethod("addRaidTokenProgress", ServerPlayer.class, Integer.TYPE);
+                                 addTokenMethod.invoke((Object)null, player, amount);
+                              }
+                           } catch (Exception var25) {}
 
-                        if (cfg.isSoundEnabled()) {
-                           player.level().playSound((Player)null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, cfg.getSoundVolume(), 1.0F);
+                           if (cfg.isSoundEnabled()) {
+                              player.level().playSound((Player)null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, cfg.getSoundVolume(), 1.0F);
+                           }
                         }
                      }
                   } else {
