@@ -1,15 +1,5 @@
 package com.PixelmonRaid;
 
-<<<<<<< HEAD:neo21/src/main/java/com/PixelmonRaid/RaidSpawner.java
-=======
-import com.pixelmonmod.api.registry.RegistryValue;
-import com.pixelmonmod.pixelmon.api.pokemon.Pokemon;
-import com.pixelmonmod.pixelmon.api.pokemon.PokemonBuilder;
-import com.pixelmonmod.pixelmon.api.pokemon.species.Species;
-import com.pixelmonmod.pixelmon.api.pokemon.stats.BattleStatsType;
-import com.pixelmonmod.pixelmon.api.registries.PixelmonSpecies;
-import com.pixelmonmod.pixelmon.entities.pixelmon.PixelmonEntity;
->>>>>>> upstream/main:forge21/src/main/java/com/example/PixelmonRaid/RaidSpawner.java
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -45,13 +35,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-<<<<<<< HEAD:neo21/src/main/java/com/PixelmonRaid/RaidSpawner.java
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
-=======
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.world.entity.ai.attributes.Attributes;
->>>>>>> upstream/main:forge21/src/main/java/com/example/PixelmonRaid/RaidSpawner.java
 
 @EventBusSubscriber
 public class RaidSpawner {
@@ -164,11 +149,6 @@ public class RaidSpawner {
                }
 
                session.clearBossEntities();
-<<<<<<< HEAD:neo21/src/main/java/com/PixelmonRaid/RaidSpawner.java
-=======
-
-               // RUTHLESS CLEANUP: Scan a massive 100-block radius specifically for ghost bosses!
->>>>>>> upstream/main:forge21/src/main/java/com/example/PixelmonRaid/RaidSpawner.java
                List<PixelmonEntity> oldEntities = world.getEntitiesOfClass(PixelmonEntity.class, (new AABB(pos)).inflate(100.0D));
                for (PixelmonEntity old : oldEntities) {
                   try {
@@ -214,18 +194,10 @@ public class RaidSpawner {
                      try {
                         statue.setPixelmonScale(scale);
                      } catch (Throwable var17) {}
-<<<<<<< HEAD:neo21/src/main/java/com/PixelmonRaid/RaidSpawner.java
-=======
-
->>>>>>> upstream/main:forge21/src/main/java/com/example/PixelmonRaid/RaidSpawner.java
                      try {
                         statue.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.0D);
                         statue.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1.0D);
                      } catch (Throwable var18) {}
-<<<<<<< HEAD:neo21/src/main/java/com/PixelmonRaid/RaidSpawner.java
-=======
-
->>>>>>> upstream/main:forge21/src/main/java/com/example/PixelmonRaid/RaidSpawner.java
                      statue.setInvulnerable(true);
                      statue.setPersistenceRequired();
 
