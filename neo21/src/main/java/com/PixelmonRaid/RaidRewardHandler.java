@@ -112,22 +112,28 @@ public class RaidRewardHandler {
                         } catch (Exception var26) {}
                      }
 
-                     if (dropChance >= 100 || rng.nextInt(100) < dropChance) {
+                     int roll = rng.nextInt(100);
+                     boolean tokenRollPassed = dropChance >= 100 || roll < dropChance;
+                     if (tokenRollPassed) {
                         int amount = tier.minTokens;
                         if (tier.maxTokens > tier.minTokens) {
                            amount += rng.nextInt(tier.maxTokens - tier.minTokens + 1);
                         }
 
                         if (amount > 0) {
-                           RaidSaveData.get(session.getWorld()).addTokens(pid, amount);
-                           player.sendSystemMessage(Component.literal("§6§l⛃ FOUND TOKENS! §eYou got " + amount + " Raid Tokens!"));
-                           try {
-                              if (ModList.get().isLoaded("pixelmonbattlepass")) {
-                                 Class<?> bpQuestsClass = Class.forName("com.pixel.pixelmonbattlepass.BattlepassQuests");
-                                 Method addTokenMethod = bpQuestsClass.getMethod("addRaidTokenProgress", ServerPlayer.class, Integer.TYPE);
-                                 addTokenMethod.invoke((Object)null, player, amount);
-                              }
-                           } catch (Exception var25) {}
+                           if (cfg.isInternalShopEnabled()) {
+                              RaidSaveData.get(session.getWorld()).addTokens(pid, amount);
+                              player.sendSystemMessage(Component.literal("§6§l⛃ FOUND TOKENS! §eYou got " + amount + " Raid Tokens!"));
+                              try {
+                                 if (ModList.get().isLoaded("pixelmonbattlepass")) {
+                                    Class<?> bpQuestsClass = Class.forName("com.pixel.pixelmonbattlepass.BattlepassQuests");
+                                    Method addTokenMethod = bpQuestsClass.getMethod("addRaidTokenProgress", ServerPlayer.class, Integer.TYPE);
+                                    addTokenMethod.invoke((Object)null, player, amount);
+                                 }
+                              } catch (Exception var25) {}
+                           } else {
+                              executeAlternateCurrencyCommand(session, player, amount, cfg.getAlternateCurrencyCommand());
+                           }
 
                            if (cfg.isSoundEnabled()) {
                               player.level().playSound((Player)null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, cfg.getSoundVolume(), 1.0F);
@@ -160,6 +166,17 @@ public class RaidRewardHandler {
             player.getServer().getCommands().performPrefixedCommand(player.getServer().createCommandSourceStack(), cmd);
          } catch (Exception var4) {
             var4.printStackTrace();
+         }
+      }
+   }
+
+   private static void executeAlternateCurrencyCommand(RaidSession session, ServerPlayer player, int amount, String cmdTemplate) {
+      if (cmdTemplate != null && !cmdTemplate.isEmpty()) {
+         String cmd = cmdTemplate.replace("%player%", player.getGameProfile().getName()).replace("%amount%", String.valueOf(amount));
+         try {
+            session.getWorld().getServer().getCommands().performPrefixedCommand(session.getWorld().getServer().createCommandSourceStack(), cmd);
+         } catch (Exception var5) {
+            var5.printStackTrace();
          }
       }
    }

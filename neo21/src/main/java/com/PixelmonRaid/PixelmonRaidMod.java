@@ -42,7 +42,7 @@ public class PixelmonRaidMod {
    }
 
    private void setup(final FMLCommonSetupEvent event) {
-      LOGGER.info("Pixelmon Raid System Initialized for 1.21.1.");
+      LOGGER.info("[PixelmonRaid] Pixelmon Raid System Initialized!");
    }
 
    @SubscribeEvent
@@ -54,6 +54,11 @@ public class PixelmonRaidMod {
 
    @SubscribeEvent
    public void onServerStarted(ServerStartedEvent event) {
+      PixelmonRaidConfig cfg = PixelmonRaidConfig.getInstance();
+      if (!cfg.isInternalShopEnabled() && cfg.getAlternateCurrencyCommand().isEmpty()) {
+         LOGGER.warn("[PixelmonRaid] Internal raid shop is disabled and alternateCurrencyCommand is empty. Raid token rewards will not be awarded.");
+      }
+
       CustomBossEvents manager = event.getServer().getCustomBossEvents();
       CustomBossEvent spacer = manager.get(SPACER_BAR_ID);
       if (spacer != null) {

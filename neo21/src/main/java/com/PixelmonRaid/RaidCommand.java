@@ -110,7 +110,7 @@ public class RaidCommand {
             int maxHP = Math.max(1, session.getMaxRaidHP());
             float pct = (float)currentHP / (float)maxHP * 100.0F;
             String hpDisplay = isMystery ? "§7???" : "§d" + currentHP + " §7/ §d" + maxHP + " §8(§b" + String.format("%.1f%%", pct) + "§8)";
-            String msg = "\n§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n       §5§l⚔ PIXELMON RAID STATUS ⚔    \n§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n §e► Current Phase:  §f" + session.getState() + "\n §e☠ Target Boss:    §c§l" + displayBossName + "\n §e❤ Boss Vitality:  " + hpDisplay + "\n §e⌛ Timer Info:     " + timeMsg + "\n §e❖ Challengers:    §a" + session.getPlayers().size() + " Active\n§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
+            String msg = "\n§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━§r\n       §5§l⚔ PIXELMON RAID STATUS ⚔    \n§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n §e► Current Phase: §f" + session.getState() + "\n §e☠ Target Boss: §c§l" + displayBossName + "\n §e❤ Boss Vitality: " + hpDisplay + "\n §e⌛ Timer Info: " + timeMsg + "\n §e❖ Challengers: §a" + session.getPlayers().size() + " Active\n§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
             context.getSource().sendSystemMessage(Component.literal(msg));
          }
          return 1;

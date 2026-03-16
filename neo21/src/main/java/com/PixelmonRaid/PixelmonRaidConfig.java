@@ -35,6 +35,7 @@ public class PixelmonRaidConfig {
    private static final Yaml yamlWriter = createYamlWriter();
 
    private boolean enableInternalShop = false;
+   private String alternateCurrencyCommand = "";
    private String msgShopDisabled = "&cThe internal Raid Shop is currently disabled. Please use the main server shop!";
    private String msgRaidStart = "&d[Raid Boss] &fA wild boss has appeared! Type &e/raid join &fto fight!";
    private String msgRaidWin = "&6&l[★] RAID VICTORY! &eThe boss has been defeated!";
@@ -209,6 +210,7 @@ public class PixelmonRaidConfig {
       }
 
       enableInternalShop = data.enableInternalShop;
+      if (data.alternateCurrencyCommand != null) alternateCurrencyCommand = data.alternateCurrencyCommand;
       if (data.msgShopDisabled != null) msgShopDisabled = data.msgShopDisabled;
       if (data.msgRaidStart != null) msgRaidStart = data.msgRaidStart;
       if (data.msgRaidWin != null) msgRaidWin = data.msgRaidWin;
@@ -379,6 +381,7 @@ public class PixelmonRaidConfig {
    }
 
    public boolean isInternalShopEnabled() { return enableInternalShop; }
+   public String getAlternateCurrencyCommand() { return alternateCurrencyCommand != null ? alternateCurrencyCommand.trim() : ""; }
    public String getMsgShopDisabled() { return formatColor(msgShopDisabled); }
    public String getMsgSpawning5Min() { return formatColor(msgSpawning5Min); }
    public String getMsgSpawning1Min() { return formatColor(msgSpawning1Min); }
