@@ -114,7 +114,9 @@ public class RaidCommand {
             context.getSource().sendSystemMessage(Component.literal(msg));
          }
          return 1;
-      })).then(Commands.literal("tokens").then(Commands.literal("balance").requires((source) -> {
+      })).then(Commands.literal("tokens").requires((source) -> {
+         return PixelmonRaidConfig.getInstance().isInternalShopEnabled();
+      }).then(Commands.literal("balance").requires((source) -> {
          return true;
       }).executes((ctx) -> {
          if (ctx.getSource().getEntity() instanceof ServerPlayer) {

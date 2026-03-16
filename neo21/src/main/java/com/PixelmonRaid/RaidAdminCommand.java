@@ -127,7 +127,9 @@ public class RaidAdminCommand {
             ctx.getSource().sendSystemMessage(Component.literal(PixelmonRaidConfig.getInstance().getMsgReload()));
          }
          return 1;
-      })).then(Commands.literal("tokens").then(Commands.literal("give").then(Commands.argument("player", EntityArgument.player()).then(Commands.argument("amount", IntegerArgumentType.integer(1)).executes((ctx) -> {
+      })).then(Commands.literal("tokens").requires((source) -> {
+         return PixelmonRaidConfig.getInstance().isInternalShopEnabled();
+      }).then(Commands.literal("give").then(Commands.argument("player", EntityArgument.player()).then(Commands.argument("amount", IntegerArgumentType.integer(1)).executes((ctx) -> {
          ServerPlayer target = EntityArgument.getPlayer(ctx, "player");
          int amt = IntegerArgumentType.getInteger(ctx, "amount");
          RaidSaveData.get((ServerLevel)target.level()).addTokens(target.getUUID(), amt);
