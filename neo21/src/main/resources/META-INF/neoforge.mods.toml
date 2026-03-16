@@ -1,0 +1,34 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="GNU AGPLv3"
+
+[[mods]]
+modId="pixelmonraid"
+version="3.0.0"
+displayName="Pixelmon Raid"
+authors="Dhanraj,Kre0lidge"
+description='''
+A custom Pixelmon raid system mod that spawns Raid boss Pokémon,
+tracks player damage, splits rewards, and prevents boss from dying.
+'''
+
+[[dependencies.pixelmonraid]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1]"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.pixelmonraid]]
+modId="neoforge"
+type="required"
+versionRange="[21.1,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.pixelmonraid]]
+modId="pixelmon"
+type="required"
+versionRange="[9.3.14,)"
+ordering="AFTER"
+side="BOTH"
