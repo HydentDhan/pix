@@ -36,16 +36,12 @@ public class RaidLeaderboardUIListener {
          boolean guiRestored = false;
 
          if (openPages.containsKey(player.getUUID())) {
-
-            // 1. CURSOR THEFT PROTECTION
             ItemStack cursor = player.containerMenu.getCarried();
             if (!cursor.isEmpty() && isLeaderboardItem(cursor)) {
                String name = cursor.getHoverName().getString().replaceAll("(?i)§[0-9a-fk-or]", "").toLowerCase();
                boolean handled = false;
-
                player.containerMenu.setCarried(ItemStack.EMPTY);
                player.connection.send(new ClientboundContainerSetSlotPacket(-1, 0, -1, ItemStack.EMPTY));
-
                int page;
                if (name.contains("next page")) {
                   page = openPages.get(player.getUUID());
@@ -68,8 +64,8 @@ public class RaidLeaderboardUIListener {
                }
             }
 
-            // 2. INVENTORY SWEEP PROTECTION
-            for(int page = 0; page < player.getInventory().getContainerSize(); ++page) {
+            int page;
+            for(page = 0; page < player.getInventory().getContainerSize(); ++page) {
                ItemStack st = player.getInventory().getItem(page);
                if (!st.isEmpty() && isLeaderboardItem(st)) {
                   player.getInventory().removeItemNoUpdate(page);
@@ -82,7 +78,7 @@ public class RaidLeaderboardUIListener {
                if (player.containerMenu != null) {
                   player.containerMenu.broadcastChanges();
                }
-               int page = openPages.getOrDefault(player.getUUID(), 1);
+               page = openPages.getOrDefault(player.getUUID(), 1);
                if (page == 0) {
                   RaidLeaderboardCommand.openLastRaidLeaderboard(player);
                } else {
@@ -95,7 +91,6 @@ public class RaidLeaderboardUIListener {
 
    @SubscribeEvent
    public static void onContainerClose(PlayerContainerEvent.Close event) {
-      // Memory Leak Prevention
       openPages.remove(event.getEntity().getUUID());
    }
 

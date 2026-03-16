@@ -28,9 +28,12 @@ public class RaidBossParticipant extends WildPixelmonParticipant {
 
    @Override
    public Entity getEntity() {
-      return this.bossEntity;
+      return this.bossEntity; // Guarantees the battle engine sees the entity with our NBT data!
    }
 
+   // -------------------------------------------------------------
+   // GOD MODE OVERRIDES: We lie to the engine to prevent fainting!
+   // -------------------------------------------------------------
 
    @Override
    public boolean hasMorePokemon() { return true; }
