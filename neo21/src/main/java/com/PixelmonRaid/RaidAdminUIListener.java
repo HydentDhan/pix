@@ -46,10 +46,13 @@ public class RaidAdminUIListener {
       UUID id = event.getEntity().getUUID();
       if (!IS_TRANSITIONING.contains(id)) {
          String state = RaidAdminCommand.playerMenuState.get(id);
+
+         // Auto-save rewards when closing the editor
          if (state != null && (state.matches("\\d+") || state.equals("killshot") || state.equals("participation")) && event.getEntity() instanceof ServerPlayer sp) {
             saveRewardsFromEditor(sp, null, state);
          }
 
+         // Aggressively prevent memory leaks by clearing all maps!
          RaidAdminCommand.playerMenuState.remove(id);
          RaidAdminCommand.editingItemIndex.remove(id);
          RaidAdminCommand.purchasingItemIndex.remove(id);
@@ -68,8 +71,9 @@ public class RaidAdminUIListener {
          boolean dirty = false;
          boolean handledClick = false;
          boolean requiresRedraw = false;
-         ItemStack cursorStack = player.containerMenu.getCarried();
 
+         // 1. CURSOR THEFT PROTECTION
+         ItemStack cursorStack = player.containerMenu.getCarried();
          if (!cursorStack.isEmpty() && isGuiItem(cursorStack)) {
             String rawName = cursorStack.getHoverName().getString();
             player.containerMenu.setCarried(ItemStack.EMPTY);
@@ -81,6 +85,7 @@ public class RaidAdminUIListener {
             }
          }
 
+         // 2. INVENTORY SWEEP PROTECTION
          for(int i = 0; i < player.getInventory().getContainerSize(); ++i) {
             ItemStack st = player.getInventory().getItem(i);
             if (!st.isEmpty() && isGuiItem(st)) {
@@ -94,12 +99,13 @@ public class RaidAdminUIListener {
             }
          }
 
+         // 3. LOOT EDITOR LOCKED SLOT PROTECTION
          if (isMenuOpen) {
             boolean isRewardEditor = state.equals("killshot") || state.equals("participation") || state.matches("\\d+");
             if (isRewardEditor && player.containerMenu != null && !IS_TRANSITIONING.contains(player.getUUID())) {
                boolean backgroundTampered = false;
                for(int i = 0; i < 54 && i < player.containerMenu.slots.size(); ++i) {
-                  if (i != 49) {
+                  if (i != 49) { // Ignore the save/back button slot
                      boolean isRewardSlot = false;
                      for(int slot : RaidAdminCommand.REWARD_SLOTS) {
                         if (i == slot) {
@@ -112,6 +118,7 @@ public class RaidAdminUIListener {
                         Slot s = player.containerMenu.getSlot(i);
                         if (s != null) {
                            if (s.hasItem() && !isGuiItem(s.getItem())) {
+                              // Player tried to put a real item in the glass pane border!
                               ItemStack stolenItem = s.getItem().copy();
                               s.set(ItemStack.EMPTY);
                               if (!player.getInventory().add(stolenItem)) {
@@ -127,6 +134,10 @@ public class RaidAdminUIListener {
                }
 
                if (backgroundTampered) {
+<<<<<<< HEAD:neo21/src/main/java/com/PixelmonRaid/RaidAdminUIListener.java
+=======
+                  // Play an error sound to let the admin know they missed the 3x3 safe zone
+>>>>>>> upstream/main:forge21/src/main/java/com/example/PixelmonRaid/RaidAdminUIListener.java
                   player.playSound(SoundEvents.ITEM_BREAK, 1.0F, 1.0F);
                   requiresRedraw = true;
                }
@@ -495,7 +506,7 @@ public class RaidAdminUIListener {
          } catch (NumberFormatException var10) {}
       }
 
-      PixelmonRaidConfig.getInstance().save();
+      PixelmonRaidConfig.getInstance().save(); // Explicitly saving changes to file!
       player.sendSystemMessage(Component.literal("§a[Raid] Saved physical items for Tier " + lvl + " - " + rankId + "!"));
    }
 }

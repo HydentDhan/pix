@@ -29,7 +29,6 @@ public final class ChatUtil {
 
    public static void broadcast(ServerPlayer player, String msg) {
       try {
-         // 1.21 uses broadcastSystemMessage directly
          player.server.getPlayerList().broadcastSystemMessage(styled("[Raid] " + msg, ChatFormatting.GOLD), false);
       } catch (Throwable ignored) {}
    }

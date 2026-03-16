@@ -36,6 +36,10 @@ public class RaidRewardHandler {
                int previousDamage = Integer.MIN_VALUE;
                int assignedRankForPrev = 0;
 
+<<<<<<< HEAD:neo21/src/main/java/com/PixelmonRaid/RaidRewardHandler.java
+=======
+               // FIXED: Replaced confusing 'tokenChance' variable with 'currentRank'
+>>>>>>> upstream/main:forge21/src/main/java/com/example/PixelmonRaid/RaidRewardHandler.java
                int currentRank;
                for(int i = 0; i < sorted.size(); ++i) {
                   Entry<UUID, Integer> e = sorted.get(i);
@@ -53,6 +57,11 @@ public class RaidRewardHandler {
                PixelmonRaidConfig cfg = PixelmonRaidConfig.getInstance();
                int difficulty = cfg.getRaidDifficulty();
                PixelmonRaidConfig.TierRewardConfig tier = cfg.getTierRewards(difficulty);
+<<<<<<< HEAD:neo21/src/main/java/com/PixelmonRaid/RaidRewardHandler.java
+=======
+
+               // Grab the exact drop chance from the JSON config
+>>>>>>> upstream/main:forge21/src/main/java/com/example/PixelmonRaid/RaidRewardHandler.java
                int dropChance = tier.tokenDropChance;
                int maxRanks = tier.getRankCount();
                Random rng = new Random();
@@ -63,6 +72,7 @@ public class RaidRewardHandler {
                   ServerPlayer player = session.getWorld().getServer().getPlayerList().getPlayer(pid);
 
                   if (player == null) continue;
+
                   if (victory) {
                      List<String> itemsToGive = new ArrayList<>();
                      List<String> commandsToRun = new ArrayList<>();
@@ -112,15 +122,21 @@ public class RaidRewardHandler {
                         } catch (Exception var26) {}
                      }
 
+<<<<<<< HEAD:neo21/src/main/java/com/PixelmonRaid/RaidRewardHandler.java
                      int roll = rng.nextInt(100);
                      boolean tokenRollPassed = dropChance >= 100 || roll < dropChance;
                      if (tokenRollPassed) {
+=======
+                     // FIXED TOKEN LOGIC: Now correctly checks the JSON drop percentage!
+                     if (dropChance >= 100 || rng.nextInt(100) < dropChance) {
+>>>>>>> upstream/main:forge21/src/main/java/com/example/PixelmonRaid/RaidRewardHandler.java
                         int amount = tier.minTokens;
                         if (tier.maxTokens > tier.minTokens) {
                            amount += rng.nextInt(tier.maxTokens - tier.minTokens + 1);
                         }
 
                         if (amount > 0) {
+<<<<<<< HEAD:neo21/src/main/java/com/PixelmonRaid/RaidRewardHandler.java
                            if (cfg.isInternalShopEnabled()) {
                               RaidSaveData.get(session.getWorld()).addTokens(pid, amount);
                               player.sendSystemMessage(Component.literal("§6§l⛃ FOUND TOKENS! §eYou got " + amount + " Raid Tokens!"));
@@ -134,6 +150,17 @@ public class RaidRewardHandler {
                            } else {
                               executeAlternateCurrencyCommand(session, player, amount, cfg.getAlternateCurrencyCommand());
                            }
+=======
+                           RaidSaveData.get(session.getWorld()).addTokens(pid, amount);
+                           player.sendSystemMessage(Component.literal("§6§l⛃ FOUND TOKENS! §eYou got " + amount + " Raid Tokens!"));
+                           try {
+                              if (ModList.get().isLoaded("pixelmonbattlepass")) {
+                                 Class<?> bpQuestsClass = Class.forName("com.pixel.pixelmonbattlepass.BattlepassQuests");
+                                 Method addTokenMethod = bpQuestsClass.getMethod("addRaidTokenProgress", ServerPlayer.class, Integer.TYPE);
+                                 addTokenMethod.invoke((Object)null, player, amount);
+                              }
+                           } catch (Exception var25) {}
+>>>>>>> upstream/main:forge21/src/main/java/com/example/PixelmonRaid/RaidRewardHandler.java
 
                            if (cfg.isSoundEnabled()) {
                               player.level().playSound((Player)null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, cfg.getSoundVolume(), 1.0F);
