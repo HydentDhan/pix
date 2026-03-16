@@ -17,5 +17,6 @@ repositories {}
 dependencies {
     var pixelmonVersion = "9.3.14"
     implementation "pixelmon:Pixelmon-1.21.1-${pixelmonVersion}-universal:${pixelmonVersion}"
+    implementation 'org.yaml:snakeyaml:2.6'
     interfaceInjectionData("pixelmon:Pixelmon-1.21.1-${pixelmonVersion}-universal-interfaceinjection:${pixelmonVersion}@json")
 }

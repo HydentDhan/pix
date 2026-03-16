@@ -381,7 +381,7 @@ public class RaidAdminUIListener {
                            }
                         } else if (!PixelmonRaidConfig.getInstance().isInternalShopEnabled()) {
                            player.playSound(SoundEvents.VILLAGER_NO, 1.0F, 1.0F);
-                           player.sendSystemMessage(Component.literal("§c❌ Shop Editor is locked! You must enable the internal shop in the JSON file first."));
+                           player.sendSystemMessage(Component.literal("§c❌ Shop Editor is locked! You must enable the internal shop in config first."));
                            return true;
                         } else {
                            switchMenu(player, "SHOP_EDITOR");
